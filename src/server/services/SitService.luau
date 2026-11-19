@@ -1,5 +1,5 @@
 --!strict
--- Pallet seats: adds an "Umupo" prompt to every seat tagged "PoseSeat" in Studio and
+-- Pallet seats: adds a "Sit" prompt to every seat tagged "PoseSeat" in Studio and
 -- picks a random sitting pose when someone sits. The pose is stored as a character
 -- attribute so every client can show it (see client SitPoseController).
 --
@@ -27,10 +27,11 @@ local function setupSeat(instance: Instance)
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "SitPrompt"
-	prompt.ActionText = "Umupo"
+	prompt.ActionText = "Sit"
 	prompt.ObjectText = ""
 	prompt.HoldDuration = 0
-	prompt.MaxActivationDistance = 8
+	-- Short range so it only shows when you're right at a pallet, not from the tier above.
+	prompt.MaxActivationDistance = 6
 	prompt.RequiresLineOfSight = false
 	-- Only the closest seat shows a prompt, so a row of pallets doesn't stack up prompts.
 	prompt.Exclusivity = Enum.ProximityPromptExclusivity.OnePerButton
