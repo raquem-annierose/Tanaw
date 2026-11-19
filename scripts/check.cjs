@@ -1,5 +1,5 @@
 // Runs StyLua (format check) and Selene (lint) on src/.
-// Run it through npm (`npm run check`, also used by the pre-commit hook)
+// Run it through pnpm (`pnpm check`, also used by the pre-commit hook)
 // so node_modules/.bin is on PATH.
 // Skips quietly when there is no src/ folder yet (before Phase 2).
 const { existsSync } = require("node:fs");
@@ -22,7 +22,7 @@ function run(label, command) {
   }
 }
 
-run("StyLua (run `npm run format` to fix)", "stylua --check src");
+run("StyLua (run `pnpm format` to fix)", "stylua --check src");
 
 if (sh("selene --version", "ignore").status === 0) {
   run("Selene", "selene src");

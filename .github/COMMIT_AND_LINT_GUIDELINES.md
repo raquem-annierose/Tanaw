@@ -11,7 +11,7 @@ Every commit is checked automatically. If a check fails, the commit is blocked; 
 ## First-time setup
 
 ```bash
-npm install          # installs commitlint, husky, StyLua and turns on the git hooks
+pnpm install         # installs commitlint, husky, StyLua and turns on the git hooks
 rokit install        # installs Selene + StyLua for VS Code (install Rokit first: github.com/rojo-rbx/rokit)
 ```
 
@@ -85,7 +85,7 @@ Don't add `Co-Authored-By:` or "Generated with …" lines to commits or PRs.
 
 ```bash
 git fetch origin
-npm run commitlint     # checks every commit on your branch vs origin/main, no ✖ allowed
+pnpm commitlint        # checks every commit on your branch vs origin/main, no ✖ allowed
 ```
 
 Fix a bad message **before** pushing: `git commit --amend -m "type(Scope): message"`.
@@ -110,8 +110,8 @@ chore(Lint): add stylua and selene configs
 StyLua formats all `.luau` files the same way, so nobody argues about spacing and diffs stay clean. Settings are in `stylua.toml`: tabs, 100-char lines, double quotes, always use `()` on calls.
 
 ```bash
-npm run format         # fix formatting in src/
-npm run format:check   # only check, don't change
+pnpm format            # fix formatting in src/
+pnpm format:check      # only check, don't change
 ```
 
 Tip: turn on **Format on Save** in VS Code with the StyLua extension.
@@ -127,8 +127,8 @@ Selene catches mistakes in Luau code. Settings are in `selene.toml` (uses the Ro
 | `shadowing` | ⚠️ Warning | Don't reuse a variable name inside an inner scope |
 
 ```bash
-npm run lint           # run Selene on src/
-npm run check          # StyLua check + Selene, same as the pre-commit hook
+pnpm lint              # run Selene on src/
+pnpm check             # StyLua check + Selene, same as the pre-commit hook
 ```
 
 ### Luau habits we follow
@@ -151,5 +151,5 @@ npm run check          # StyLua check + Selene, same as the pre-commit hook
 - [ ] First line ≤ 92 characters (hard limit 100), only one `(#NN)`
 - [ ] No `Merge branch …` default messages
 - [ ] No `Co-Authored-By` lines
-- [ ] `npm run check` passes
-- [ ] `npm run commitlint` shows no ✖ before pushing
+- [ ] `pnpm check` passes
+- [ ] `pnpm commitlint` shows no ✖ before pushing
