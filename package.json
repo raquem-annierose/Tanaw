@@ -9,9 +9,10 @@
   },
   "scripts": {
     "prepare": "husky",
-    "format": "stylua src",
-    "format:check": "stylua --check src",
+    "format": "prettier --write . && stylua src",
+    "format:check": "prettier --check . && stylua --check src",
     "lint": "selene src",
+    "typecheck": "node scripts/check.cjs --only-types",
     "check": "node scripts/check.cjs",
     "bootstrap": "pnpm install && rokit install",
     "commitlint": "commitlint --from origin/main --to HEAD"
@@ -29,6 +30,7 @@
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",
     "@johnnymorganz/stylua-bin": "^2.6.0",
-    "husky": "^9.1.7"
+    "husky": "^9.1.7",
+    "prettier": "^3.10.1"
   }
 }
