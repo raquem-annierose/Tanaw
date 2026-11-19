@@ -1,0 +1,6 @@
+node_modules/
+*.rbxl.lock
+*.rbxlx.lock
+roblox.yml
+roblox.toml
+.DS_Store

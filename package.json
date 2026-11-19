@@ -1,0 +1,24 @@
+{
+  "name": "tanaw",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tanaw: a cozy hilltop café hangout on Roblox by NieRa Studios",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/raquem-annierose/Tanaw.git"
+  },
+  "scripts": {
+    "prepare": "husky",
+    "format": "stylua src",
+    "format:check": "stylua --check src",
+    "lint": "selene src",
+    "check": "node scripts/check.cjs",
+    "commitlint": "commitlint --from origin/main --to HEAD"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "@johnnymorganz/stylua-bin": "^2.6.0",
+    "husky": "^9.1.7"
+  }
+}
