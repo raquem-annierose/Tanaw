@@ -2,17 +2,19 @@
 
 Every commit is checked automatically. If a check fails, the commit is blocked; fix it and try again.
 
-| Check | Tool | When it runs |
-|---|---|---|
-| Commit message format | **commitlint** (via husky) | On every `git commit` |
-| Code formatting | **StyLua** | Before every commit (`src/` only) |
-| Code mistakes | **Selene** | Before every commit (`src/` only, if installed) |
+| Check                    | Tool                       | JS/TS equivalent | When it runs                      |
+| ------------------------ | -------------------------- | ---------------- | --------------------------------- |
+| Commit message format    | **commitlint** (via husky) | same             | On every `git commit`             |
+| Docs/config formatting   | **Prettier**               | same             | Before every commit (md/json/yml) |
+| Luau formatting          | **StyLua**                 | Prettier         | Before every commit (`src/`)      |
+| Luau mistakes            | **Selene**                 | ESLint           | Before every commit (`src/`)      |
+| Luau types (`--!strict`) | **luau-lsp analyze**       | `tsc --noEmit`   | Before every commit (`src/`)      |
 
 ## First-time setup
 
 ```bash
-pnpm install         # installs commitlint, husky, StyLua and turns on the git hooks
-rokit install        # installs Selene + StyLua for VS Code (install Rokit first: github.com/rojo-rbx/rokit)
+pnpm install         # commitlint, husky, Prettier, StyLua + turns on the git hooks
+rokit install        # Rojo, luau-lsp, Selene, StyLua (install Rokit first: github.com/rojo-rbx/rokit)
 ```
 
 In VS Code, install the recommended extensions when asked (Luau LSP, StyLua, Selene).
@@ -31,20 +33,20 @@ All three parts are required.
 
 ### Type
 
-| Type | Use it for |
-|---|---|
-| `feat` | A new feature (sticker maker, matching tables) |
-| `fix` | A bug fix |
-| `refactor` | Code cleanup that doesn't change behavior |
-| `perf` | Making things faster or lighter |
-| `test` | Adding or changing tests |
-| `docs` | Docs only (README, specs, tickets) |
-| `style` | Formatting only, no logic change |
-| `chore` | Setup, configs, tools, dependency updates |
-| `ci` | GitHub Actions / automation |
-| `build` | Rojo project or build setup |
-| `revert` | Undoing an earlier commit |
-| `asset` | Roblox builds: maps, models, UI art, sounds |
+| Type       | Use it for                                     |
+| ---------- | ---------------------------------------------- |
+| `feat`     | A new feature (sticker maker, matching tables) |
+| `fix`      | A bug fix                                      |
+| `refactor` | Code cleanup that doesn't change behavior      |
+| `perf`     | Making things faster or lighter                |
+| `test`     | Adding or changing tests                       |
+| `docs`     | Docs only (README, specs, tickets)             |
+| `style`    | Formatting only, no logic change               |
+| `chore`    | Setup, configs, tools, dependency updates      |
+| `ci`       | GitHub Actions / automation                    |
+| `build`    | Rojo project or build setup                    |
+| `revert`   | Undoing an earlier commit                      |
+| `asset`    | Roblox builds: maps, models, UI art, sounds    |
 
 ### Scope: PascalCase, always
 
@@ -58,7 +60,7 @@ Common scopes: `StickerMaker`, `Matching`, `Cafe`, `Overlook`, `Ui`, `DataStore`
 
 ### Message
 
-- Start with a lowercase verb, written as a command: *add*, *fix*, *remove*, *update*.
+- Start with a lowercase verb, written as a command: _add_, _fix_, _remove_, _update_.
 - ✅ `fix(Cafe): stop drink from floating after sitting`
 - ❌ `fix(Cafe): Fixed the drink bug.`
 
@@ -89,7 +91,7 @@ pnpm commitlint        # checks every commit on your branch vs origin/main, no �
 ```
 
 Fix a bad message **before** pushing: `git commit --amend -m "type(Scope): message"`.
-If it's already pushed to *your own* branch, amend and `git push --force-with-lease`.
+If it's already pushed to _your own_ branch, amend and `git push --force-with-lease`.
 Never force-push `main`.
 
 ### Examples
@@ -120,16 +122,39 @@ Tip: turn on **Format on Save** in VS Code with the StyLua extension.
 
 Selene catches mistakes in Luau code. Settings are in `selene.toml` (uses the Roblox standard library).
 
-| Rule | Level | Meaning |
-|---|---|---|
-| `unused_variable` | ❌ Error | Remove unused variables, or name them `_` / `_name` |
-| `global_usage` | ❌ Error | No globals: use `local`, or put shared values in a ModuleScript |
-| `shadowing` | ⚠️ Warning | Don't reuse a variable name inside an inner scope |
+| Rule              | Level      | Meaning                                                         |
+| ----------------- | ---------- | --------------------------------------------------------------- |
+| `unused_variable` | ❌ Error   | Remove unused variables, or name them `_` / `_name`             |
+| `global_usage`    | ❌ Error   | No globals: use `local`, or put shared values in a ModuleScript |
+| `shadowing`       | ⚠️ Warning | Don't reuse a variable name inside an inner scope               |
 
 ```bash
 pnpm lint              # run Selene on src/
-pnpm check             # StyLua check + Selene, same as the pre-commit hook
+pnpm check             # Prettier + StyLua + Selene + type check, same as the pre-commit hook
 ```
+
+## 4. Type checking (Luau `--!strict`)
+
+Luau has TypeScript-style types built in. `.luaurc` sets every file to **strict** mode, and the pre-commit hook blocks the commit on any type error.
+
+```lua
+--!strict
+type Sticker = {
+	shape: string,
+	color: Color3,
+	text: string?, -- optional, like `text?: string` in TS
+}
+
+local function placeSticker(player: Player, sticker: Sticker): boolean
+	return true
+end
+```
+
+```bash
+pnpm typecheck         # Rojo sourcemap + luau-lsp analyze on src/
+```
+
+The type check uses Rojo's sourcemap to understand where scripts live in the game (`ReplicatedStorage.Shared`, etc.), and downloads Roblox's type definitions once into `.luau-types/`.
 
 ### Luau habits we follow
 
@@ -151,5 +176,5 @@ pnpm check             # StyLua check + Selene, same as the pre-commit hook
 - [ ] First line ≤ 92 characters (hard limit 100), only one `(#NN)`
 - [ ] No `Merge branch …` default messages
 - [ ] No `Co-Authored-By` lines
-- [ ] `pnpm check` passes
+- [ ] `pnpm check` passes (format, lint and types)
 - [ ] `pnpm commitlint` shows no ✖ before pushing
