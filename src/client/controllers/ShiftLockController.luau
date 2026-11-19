@@ -3,8 +3,9 @@
 --
 -- On PC, Roblox's built-in shift lock handles this (Shift key, enabled through
 -- StarterPlayer.EnableMouseLockOption). Mobile/tablet and console have no built-in version,
--- so this adds an on-screen Lock button for touch screens and L3 for gamepads.
--- While on, the character faces where the camera looks and the camera sits over the shoulder.
+-- so this adds L3 for gamepads, and ui/ShiftLockButton adds an on-screen Lock button for touch
+-- screens. While on, the character faces where the camera looks and the camera sits over the
+-- shoulder.
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -19,20 +20,32 @@ local BIND_NAME = "TanawShiftLockRotate"
 
 local ShiftLockController = {}
 
+local changedEvent = Instance.new("BindableEvent")
+ShiftLockController.Changed = changedEvent.Event
+
+local enabled = false
+local humanoid: Humanoid? = nil
+local rootPart: BasePart? = nil
+
+local function apply()
+	if humanoid then
+		humanoid.AutoRotate = not enabled
+		humanoid.CameraOffset = if enabled then Config.ShiftLock.CameraOffset else Vector3.zero
+	end
+end
+
+function ShiftLockController.isEnabled(): boolean
+	return enabled
+end
+
+function ShiftLockController.toggle()
+	enabled = not enabled
+	apply()
+	changedEvent:Fire(enabled)
+end
+
 function ShiftLockController.start()
 	local player = Players.LocalPlayer
-
-	local enabled = false
-	local humanoid: Humanoid? = nil
-	local rootPart: BasePart? = nil
-
-	local function apply()
-		if humanoid then
-			humanoid.AutoRotate = not enabled
-			humanoid.CameraOffset = if enabled then Config.ShiftLock.CameraOffset else Vector3.zero
-		end
-		ContextActionService:SetTitle(ACTION_NAME, if enabled then "Unlock" else "Lock")
-	end
 
 	local function onCharacterAdded(character: Model)
 		humanoid = character:WaitForChild("Humanoid") :: Humanoid
@@ -41,15 +54,15 @@ function ShiftLockController.start()
 		apply()
 	end
 
+	-- Gamepad only. Roblox's own touch button for this sits on top of the jump button on
+	-- phones, so touch screens get ui/ShiftLockButton instead.
 	ContextActionService:BindAction(ACTION_NAME, function(_, inputState: Enum.UserInputState)
 		if inputState ~= Enum.UserInputState.Begin then
 			return Enum.ContextActionResult.Pass
 		end
-		enabled = not enabled
-		apply()
+		ShiftLockController.toggle()
 		return Enum.ContextActionResult.Sink
-	end, true, Enum.KeyCode.ButtonL3)
-	ContextActionService:SetTitle(ACTION_NAME, "Lock")
+	end, false, Enum.KeyCode.ButtonL3)
 
 	if player.Character then
 		task.spawn(onCharacterAdded, player.Character)
