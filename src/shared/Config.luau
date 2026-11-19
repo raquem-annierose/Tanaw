@@ -30,6 +30,18 @@ local Config = {
 	-- When someone holds several of these roles, the first one in this list is shown.
 	ChatTagOrder = { "Owner", "Developer", "Moderator" },
 
+	Admin = {
+		-- Community roles that get admin commands.
+		Roles = { "Owner", "Developer" },
+		-- Extra people by Roblox UserId (Profile URL: roblox.com/users/<UserId>/profile).
+		UserIds = {} :: { number },
+		-- Admin commands only exist in these experiences (DEV, STAGING), never in PROD.
+		-- Studio playtests of an unpublished copy also count.
+		UniverseIds = { 10777857627, 10777857441 },
+		FlySpeed = 50,
+		MaxWalkSpeed = 100,
+	},
+
 	SpawnView = {
 		-- Where the camera starts after spawning: this far behind the character, this much higher.
 		CameraDistance = 12,
