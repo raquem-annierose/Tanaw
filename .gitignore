@@ -4,3 +4,5 @@ node_modules/
 roblox.yml
 roblox.toml
 .DS_Store
+sourcemap.json
+.luau-types/

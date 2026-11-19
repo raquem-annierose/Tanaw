@@ -1,0 +1,35 @@
+{
+  "name": "Tanaw",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+    "VoiceChatService": {
+      "$properties": {
+        "EnableDefaultVoice": true
+      }
+    },
+    "StarterPlayer": {
+      "$properties": {
+        "EnableMouseLockOption": true,
+        "DevComputerMovementMode": "UserChoice",
+        "DevTouchMovementMode": "UserChoice",
+        "DevComputerCameraMovementMode": "UserChoice",
+        "DevTouchCameraMovementMode": "UserChoice"
+      },
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    }
+  }
+}
