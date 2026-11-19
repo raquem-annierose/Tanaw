@@ -1,0 +1,4 @@
+# Roblox tool versions. Install Rokit, then run `rokit install` in this folder.
+[tools]
+selene = "Kampfkarren/selene@0.28.0"
+stylua = "JohnnyMorganz/StyLua@2.6.0"
