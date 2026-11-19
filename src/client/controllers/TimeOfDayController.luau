@@ -136,6 +136,11 @@ function TimeOfDayController.set(id: string, instant: boolean?)
 
 	tween(getColorCorrection(), info, { TintColor = preset.Tint, Saturation = preset.Saturation })
 
+	local sky = Lighting:FindFirstChildOfClass("Sky")
+	if sky then
+		tween(sky, info, { SunAngularSize = preset.SunSize })
+	end
+
 	local clouds = Workspace.Terrain:FindFirstChildOfClass("Clouds")
 	if clouds then
 		tween(clouds, info, { Color = preset.CloudColor, Cover = preset.CloudCover })
