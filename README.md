@@ -12,9 +12,50 @@ A cozy hilltop café hangout on Roblox by **NieRa Studios**. This repo holds the
 | [docs/03-roadmap.md](docs/03-roadmap.md) | Learning journey: phases and to-do checklist |
 | [docs/04-tickets.md](docs/04-tickets.md) | Brainstorm + build tickets (copy these into GitHub Issues later) |
 
-**Before committing:** read [.github/COMMIT_AND_LINT_GUIDELINES.md](.github/COMMIT_AND_LINT_GUIDELINES.md) and run `npm install` once.
-
 **FigJam brainstorm board:** https://www.figma.com/board/OSW6eQhloNPseKiGv3PYhD
+
+## Setup (do this once after cloning)
+
+### 1. Install these first
+| Tool | Why | Get it |
+|---|---|---|
+| **Git** | Version control | git-scm.com |
+| **Node.js 20+** | Runs the commit and lint tools | nodejs.org |
+| **pnpm** | Package manager for this repo (don't use npm or yarn) | `npm install -g pnpm`, or pnpm.io/installation |
+| **Rokit** | Installs the Roblox tools (Selene, StyLua) | github.com/rojo-rbx/rokit/releases → download the zip, then run `rokit self-install` |
+| **Roblox Studio** | Building and testing the game | create.roblox.com |
+| **VS Code** *(recommended)* | Code editor | code.visualstudio.com |
+
+Restart your terminal after installing Rokit so it's on your PATH.
+
+### 2. Clone and install
+```bash
+git clone git@github.com:raquem-annierose/Tanaw.git
+cd Tanaw
+pnpm install         # commitlint, husky, StyLua + turns on the git hooks
+rokit install        # Selene + StyLua (answer "yes" to trust them)
+```
+
+Or do both in one step: `pnpm bootstrap`.
+
+### 3. VS Code
+Open the folder and click **Install** when VS Code suggests the recommended extensions (Luau LSP, StyLua, Selene).
+
+### 4. Check it works
+```bash
+selene --version
+pnpm check
+```
+
+### Everyday commands
+| Command | What it does |
+|---|---|
+| `pnpm check` | Format check + lint (same as the pre-commit hook) |
+| `pnpm format` | Auto-format all Luau code in `src/` |
+| `pnpm lint` | Run Selene on `src/` |
+| `pnpm commitlint` | Check your branch's commit messages vs `origin/main` |
+
+Before your first commit, read [.github/COMMIT_AND_LINT_GUIDELINES.md](.github/COMMIT_AND_LINT_GUIDELINES.md). Commits that don't follow it are blocked.
 
 ## Status
 - [x] Pick community name: NieRa Studios

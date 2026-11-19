@@ -13,7 +13,17 @@
     "format:check": "stylua --check src",
     "lint": "selene src",
     "check": "node scripts/check.cjs",
+    "bootstrap": "pnpm install && rokit install",
     "commitlint": "commitlint --from origin/main --to HEAD"
+  },
+  "packageManager": "pnpm@10.28.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@johnnymorganz/stylua-bin"
+    ]
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
