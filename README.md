@@ -12,6 +12,8 @@ A cozy hilltop café hangout on Roblox by **NieRa Studios**. This repo holds the
 | [docs/03-roadmap.md](docs/03-roadmap.md) | Learning journey: phases and to-do checklist |
 | [docs/04-tickets.md](docs/04-tickets.md) | Brainstorm + build tickets (copy these into GitHub Issues later) |
 
+**Before committing:** read [.github/COMMIT_AND_LINT_GUIDELINES.md](.github/COMMIT_AND_LINT_GUIDELINES.md) and run `npm install` once.
+
 **FigJam brainstorm board:** https://www.figma.com/board/OSW6eQhloNPseKiGv3PYhD
 
 ## Status
