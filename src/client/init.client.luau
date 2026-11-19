@@ -4,6 +4,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local ChatTagController = require(script.controllers.ChatTagController)
 local Config = require(ReplicatedStorage.Shared.Config)
 local MovementController = require(script.controllers.MovementController)
 local ShiftLockController = require(script.controllers.ShiftLockController)
@@ -16,6 +17,7 @@ local TimeOfDayMenu = require(script.ui.TimeOfDayMenu)
 local player = Players.LocalPlayer
 print(`Welcome to {Config.GameName}, {player.DisplayName}!`)
 
+ChatTagController.start()
 MovementController.start()
 ShiftLockController.start()
 ShiftLockButton.start()
