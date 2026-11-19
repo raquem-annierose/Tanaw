@@ -226,8 +226,12 @@ end
 
 function LoadingScreen.run()
 	local player = Players.LocalPlayer
+	local playerGui = player:WaitForChild("PlayerGui") :: PlayerGui
+	-- Turn phones to landscape now, so the loading screen is already sideways. Roblox only
+	-- applies StarterGui.ScreenOrientation (also LandscapeSensor) a bit later in the join.
+	playerGui.ScreenOrientation = Enum.ScreenOrientation.LandscapeSensor
 	local ui = build()
-	ui.gui.Parent = player:WaitForChild("PlayerGui")
+	ui.gui.Parent = playerGui
 	ReplicatedFirst:RemoveDefaultLoadingScreen()
 
 	-- The bar eases toward `target` and never goes backwards.
