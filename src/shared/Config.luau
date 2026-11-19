@@ -3,6 +3,7 @@
 
 local Config = {
 	GameName = "Tanaw",
+	GameTitle = "Tanaw: Café & City Lights",
 	Studio = "NieRa Studios",
 }
 

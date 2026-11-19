@@ -1,9 +1,9 @@
-# Tanaw
+# Tanaw: Café & City Lights
 
 A cozy hilltop café hangout on Roblox by **NieRa Studios**. This repo holds the plans, specs, and tickets, and from Phase 2 on, the game code (see [docs/02-architecture.md](docs/02-architecture.md)).
 
 **Community:** NieRa Studios
-**First game:** **Tanaw**, a chill hilltop café hangout
+**First game:** **Tanaw: Café & City Lights**, a chill hilltop café hangout
 
 | Doc                                                | What's inside                                                     |
 | -------------------------------------------------- | ----------------------------------------------------------------- |
@@ -74,6 +74,6 @@ Before your first commit, read [.github/COMMIT_AND_LINT_GUIDELINES.md](.github/C
 ## Status
 
 - [x] Pick community name: NieRa Studios
-- [x] Pick game name: Tanaw
+- [x] Pick game name: Tanaw: Café & City Lights
 - [ ] Check NieRa Studios is free on Roblox, Discord, TikTok, GitHub
 - [ ] Finish Phase 0 of the roadmap

@@ -16,7 +16,7 @@ A cozy Filipino-inspired hilltop hangout where players chill at a café overlook
 ## ✅ Chosen names (2026-11-19)
 
 - **Community:** **NieRa Studios** (handles: `nierastudios` / `niera-studios`)
-- **Game:** **Tanaw** (subtitle optional, e.g. _Tanaw: Overlook Café_)
+- **Game:** **Tanaw: Café & City Lights** (short name: Tanaw)
 
 To check:
 
