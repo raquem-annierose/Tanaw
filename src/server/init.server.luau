@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local AdminService = require(script.services.AdminService)
 local ChatTagService = require(script.services.ChatTagService)
 local Config = require(ReplicatedStorage.Shared.Config)
+local NpcService = require(script.services.NpcService)
 local SitService = require(script.services.SitService)
 
 Players.PlayerAdded:Connect(function(player: Player)
@@ -15,4 +16,5 @@ end)
 
 AdminService.start()
 ChatTagService.start()
+NpcService.start()
 SitService.start()
