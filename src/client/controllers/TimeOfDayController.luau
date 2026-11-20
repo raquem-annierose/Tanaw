@@ -1,5 +1,5 @@
 --!strict
--- Changes the sky and lights for this player only (Umaga / Hapon / Gabi).
+-- Changes the sky and lights for this player only (Umaga / Tanghali / Hapon / Gabi).
 --
 -- Lighting changes made on the client are local, so every player can pick their own time
 -- without affecting anyone else. Lights are found by CollectionService tags set in Studio:
@@ -139,6 +139,16 @@ function TimeOfDayController.set(id: string, instant: boolean?)
 	local sky = Lighting:FindFirstChildOfClass("Sky")
 	if sky then
 		tween(sky, info, { SunAngularSize = preset.SunSize })
+		-- StarCount is a whole number, so it switches instead of tweening.
+		if seconds == 0 then
+			sky.StarCount = preset.StarCount
+		else
+			task.delay(seconds / 2, function()
+				if currentId == id then
+					sky.StarCount = preset.StarCount
+				end
+			end)
+		end
 	end
 
 	local clouds = Workspace.Terrain:FindFirstChildOfClass("Clouds")

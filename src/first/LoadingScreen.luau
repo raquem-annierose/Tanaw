@@ -3,7 +3,7 @@
 --
 -- Runs from ReplicatedFirst, before every other script, so it covers the screen while the
 -- hilltop, the city in the distance and the player's character load. With StreamingEnabled the
--- city (City and MidGround, both Persistent) can arrive a moment after joining; this keeps it
+-- city (Surroundings/City and Surroundings/MidGround, both Persistent) can arrive a moment after joining; this keeps it
 -- hidden until it's there, then fades into the spawn view. It never waits longer than
 -- MAX_WAIT_SECONDS, so a slow connection still gets into the game.
 --
@@ -270,15 +270,15 @@ function LoadingScreen.run()
 
 	-- 2. The hilltop and the city in the distance.
 	progress(0.25, "Inihahanda ang tanaw…")
-	local overlook: Instance? = nil
+	local surroundings: Instance? = nil
 	waitFor(function()
-		overlook = Workspace:FindFirstChild("Overlook")
-		return overlook ~= nil
+		surroundings = Workspace:FindFirstChild("Surroundings")
+		return Workspace:FindFirstChild("Overlook") ~= nil and surroundings ~= nil
 	end, remaining())
 	progress(0.35)
-	if overlook then
+	if surroundings then
 		for _, name in { "MidGround", "City" } do
-			local model = (overlook :: Instance):WaitForChild(name, remaining())
+			local model = (surroundings :: Instance):WaitForChild(name, remaining())
 			if model then
 				waitForSettled(model, remaining())
 			end

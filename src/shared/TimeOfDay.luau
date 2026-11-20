@@ -18,6 +18,8 @@ export type Preset = {
 	ClockTime: number,
 	-- Sky.SunAngularSize. Smaller = a crisp sun disc instead of a big white glow.
 	SunSize: number,
+	-- Sky.StarCount. 0 hides the stars (Roblox shows them as soon as the sun is low).
+	StarCount: number,
 	Brightness: number,
 	OutdoorAmbient: Color3,
 	Ambient: Color3,
@@ -38,6 +40,7 @@ local Umaga: Preset = {
 	Icon = "☀️",
 	ClockTime = 9,
 	SunSize = 11,
+	StarCount = 0,
 	Brightness = 2.6,
 	OutdoorAmbient = Color3.fromRGB(140, 140, 150),
 	Ambient = Color3.fromRGB(70, 70, 76),
@@ -57,14 +60,43 @@ local Umaga: Preset = {
 	CityLights = false,
 }
 
+local Tanghali: Preset = {
+	Id = "Tanghali",
+	Label = "Tanghali",
+	Icon = "🌤️",
+	-- Bright blue sky with the sun still up, only a light pink blush in the haze near
+	-- the horizon. No stars, no city window lights, string lights off.
+	ClockTime = 16.6,
+	SunSize = 8,
+	StarCount = 0,
+	Brightness = 2.3,
+	OutdoorAmbient = Color3.fromRGB(146, 140, 150),
+	Ambient = Color3.fromRGB(64, 60, 68),
+	Atmosphere = {
+		Density = 0.3,
+		Offset = 0.1,
+		Color = Color3.fromRGB(226, 204, 210),
+		Decay = Color3.fromRGB(118, 140, 180),
+		Glare = 0,
+		Haze = 1.3,
+	},
+	Tint = Color3.fromRGB(255, 246, 244),
+	Saturation = 0.08,
+	CloudColor = Color3.fromRGB(252, 230, 232),
+	CloudCover = 0.35,
+	WarmLights = false,
+	CityLights = false,
+}
+
 local Hapon: Preset = {
 	Id = "Hapon",
 	Label = "Hapon",
 	Icon = "🌇",
 	-- Pink sunset like look/6.png: pink band on the horizon, purple-blue sky above,
-	-- small sun with no glare, first city lights on.
+	-- small sun with no glare, first city lights on. No stars yet (those are for Gabi).
 	ClockTime = 17.85,
 	SunSize = 7,
+	StarCount = 0,
 	Brightness = 1.8,
 	OutdoorAmbient = Color3.fromRGB(150, 124, 146),
 	Ambient = Color3.fromRGB(58, 48, 64),
@@ -90,6 +122,7 @@ local Gabi: Preset = {
 	Icon = "🌙",
 	ClockTime = 19.6,
 	SunSize = 11,
+	StarCount = 3000,
 	Brightness = 1,
 	OutdoorAmbient = Color3.fromRGB(74, 66, 102),
 	Ambient = Color3.fromRGB(34, 30, 48),
@@ -112,9 +145,10 @@ local Gabi: Preset = {
 
 local TimeOfDay = {
 	Default = "Hapon",
-	Order = { "Umaga", "Hapon", "Gabi" },
+	Order = { "Umaga", "Tanghali", "Hapon", "Gabi" },
 	Presets = {
 		Umaga = Umaga,
+		Tanghali = Tanghali,
 		Hapon = Hapon,
 		Gabi = Gabi,
 	} :: { [string]: Preset },

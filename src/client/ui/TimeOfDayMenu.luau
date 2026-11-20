@@ -1,5 +1,5 @@
 --!strict
--- Umaga / Hapon / Gabi toggle at the top center of the screen.
+-- Umaga / Tanghali / Hapon / Gabi toggle at the top center of the screen.
 --
 -- Top center stays clear of Roblox's own buttons (top-left), the player list (top-right) and
 -- the mobile thumbstick/jump buttons (bottom). Buttons are large enough for touch and
@@ -11,7 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TimeOfDay = require(ReplicatedStorage.Shared.TimeOfDay)
 local TimeOfDayController = require(script.Parent.Parent.controllers.TimeOfDayController)
 
-local BUTTON_WIDTH = 104
+local BUTTON_WIDTH = 112
 local PADDING = 4
 
 local SELECTED_BG = Color3.fromRGB(255, 255, 255)
