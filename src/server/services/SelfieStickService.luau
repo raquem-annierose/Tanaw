@@ -1,6 +1,8 @@
 --!strict
--- Gives every player a selfie stick tool. Equipping it switches that player's camera to a
--- selfie view (see client SelfieController); everyone else just sees the stick in their hand.
+-- Selfie stick for the phone's Camera app. When a player opens selfie mode, the client asks
+-- through the Phone remote and the stick is put straight into their hand (never the backpack,
+-- so it doesn't show in the hotbar). Holding it switches their camera to the selfie view (see
+-- client SelfieController); everyone else just sees the stick in their hand.
 --
 -- The stick is built from parts here so it lives in code. Parts are named so the client can
 -- find the phone: Handle (grip) → Stick → Phone at the far end.
@@ -9,6 +11,10 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
+
+-- Ignore requests closer together than this (spam protection).
+local MIN_INTERVAL = 0.3
 
 local SelfieStickService = {}
 
@@ -91,32 +97,48 @@ local function buildTool(): Tool
 end
 
 local template: Tool? = nil
+local lastRequest: { [Player]: number } = {}
 
-local function give(player: Player)
-	local backpack = player:FindFirstChildOfClass("Backpack")
-	if not backpack or not template or backpack:FindFirstChild(template.Name) then
+local function setSelfie(player: Player, on: boolean)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not character or not humanoid or humanoid.Health <= 0 or not template then
 		return
 	end
-	template:Clone().Parent = backpack
-end
-
-local function onPlayer(player: Player)
-	-- The backpack is emptied on every respawn, so hand out a new stick each time.
-	player.CharacterAdded:Connect(function()
-		give(player)
-	end)
-	if player.Character then
-		give(player)
+	local existing = character:FindFirstChild(template.Name)
+	if on and not existing then
+		-- Puts away whatever they were holding (e.g. a bubble tea) into the backpack.
+		humanoid:UnequipTools()
+		local tool = template:Clone()
+		-- Equipping another tool from the backpack sends this one to the backpack: remove it
+		-- instead, so it never shows up in the hotbar.
+		tool.AncestryChanged:Connect(function()
+			if tool.Parent and tool.Parent ~= character then
+				tool:Destroy()
+			end
+		end)
+		tool.Parent = character
+	elseif not on and existing then
+		existing:Destroy()
 	end
 end
 
 function SelfieStickService.start()
-	-- Not using StarterPack: players who spawned before this ran would miss out.
 	template = buildTool()
-	for _, player in Players:GetPlayers() do
-		onPlayer(player)
-	end
-	Players.PlayerAdded:Connect(onPlayer)
+	Remotes.phone().OnServerEvent:Connect(function(player: Player, action: unknown, on: unknown)
+		if action ~= "Selfie" or typeof(on) ~= "boolean" then
+			return
+		end
+		local now = os.clock()
+		if now - (lastRequest[player] or 0) < MIN_INTERVAL then
+			return
+		end
+		lastRequest[player] = now
+		setSelfie(player, on)
+	end)
+	Players.PlayerRemoving:Connect(function(player: Player)
+		lastRequest[player] = nil
+	end)
 end
 
 return SelfieStickService

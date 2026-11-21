@@ -13,6 +13,8 @@ local FOLDER = "Remotes"
 local ADMIN = "Admin"
 -- Café cashier. Client -> server: ("Accept") the player said yes to the order question.
 local CAFE = "Cafe"
+-- Phone. Client -> server: ("Selfie", on: boolean) hold up / put away the selfie stick.
+local PHONE = "Phone"
 
 local Remotes = {}
 
@@ -53,6 +55,11 @@ end
 -- Both sides: the café remote. On the client this waits until the server has made it.
 function Remotes.cafe(): RemoteEvent
 	return event(CAFE)
+end
+
+-- Both sides: the phone remote. On the client this waits until the server has made it.
+function Remotes.phone(): RemoteEvent
+	return event(PHONE)
 end
 
 -- Client: the admin remote, or nil if it doesn't show up in time (e.g. in PROD it never does).

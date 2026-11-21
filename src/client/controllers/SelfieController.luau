@@ -1,7 +1,8 @@
 --!strict
--- Selfie camera: while this player holds the selfie stick, the camera sits at the phone on the
--- end of the stick and looks back at their face, with the view behind them. Unequip to go back
--- to the normal camera. Walk or turn to change the angle.
+-- Selfie camera: while this player holds the selfie stick (phone Camera app, selfie mode), the
+-- camera sits at the phone on the end of the stick and looks back at their face, with the view
+-- behind them. Putting the stick away goes back to the normal camera. Walk or turn to change
+-- the angle.
 --
 -- The stick itself is made on the server (SelfieStickService).
 
