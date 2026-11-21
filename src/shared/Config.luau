@@ -42,6 +42,14 @@ local Config = {
 		MaxWalkSpeed = 100,
 	},
 
+	SelfieStick = {
+		-- Tool name in the backpack. The client looks for this name to switch to the selfie camera.
+		ToolName = "Selfie Stick",
+		StickLength = 3.5,
+		-- Camera field of view while taking a selfie (Roblox default is 70). Wider shows more city.
+		FieldOfView = 80,
+	},
+
 	SpawnView = {
 		-- Where the camera starts after spawning: this far behind the character, this much higher.
 		CameraDistance = 12,
