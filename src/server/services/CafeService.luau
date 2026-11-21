@@ -99,6 +99,18 @@ local function give(player: Player)
 		return
 	end
 	local tea = template:Clone()
+	-- Click while holding it to take a sip. The time goes on the character so every client can
+	-- play the sip (client SipController); a cooldown stops click spam.
+	local lastSip = 0
+	tea.Activated:Connect(function()
+		local now = os.clock()
+		local holder = tea.Parent
+		if now - lastSip < Config.Cafe.SipCooldown or not holder or not holder:IsA("Model") then
+			return
+		end
+		lastSip = now
+		holder:SetAttribute(Config.Cafe.SipAttribute, workspace:GetServerTimeNow())
+	end)
 	tea.Parent = player:FindFirstChildOfClass("Backpack")
 	humanoid:EquipTool(tea)
 end

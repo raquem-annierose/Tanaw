@@ -61,6 +61,11 @@ local Config = {
 		AcceptDistance = 18,
 		-- How long the question stays valid / on screen, in seconds.
 		AnswerTimeout = 20,
+		-- Click while holding the drink to sip: how long one sip takes, and the wait between sips.
+		SipSeconds = 1.4,
+		SipCooldown = 1.6,
+		-- Character attribute holding the server time of the last sip (read by SipController).
+		SipAttribute = "SipAt",
 	},
 
 	Badges = {
