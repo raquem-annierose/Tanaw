@@ -19,9 +19,12 @@ export type Track = {
 local Music = {
 	-- Sound volume when a player's slider is at 100%. Kept low so voice chat still comes through.
 	MaxVolume = 0.4,
-	-- Where each player's slider starts (0 to 1).
-	DefaultLevel = 0.5,
-	FadeSeconds = 1.5,
+	-- Where each player's slider starts (0 to 1). Low on purpose: background, not loud.
+	DefaultLevel = 0.18,
+	-- Songs fade in over this long, so nobody gets startled when one starts.
+	FadeSeconds = 3,
+	-- Votes needed to skip a song for everyone (fewer if the server has fewer players).
+	SkipVotesNeeded = 2,
 	-- Quiet gap between songs.
 	GapSeconds = 2,
 	-- If a player's song drifts this far from the server's, it jumps back in sync.

@@ -15,6 +15,10 @@ local ADMIN = "Admin"
 local CAFE = "Cafe"
 -- Phone. Client -> server: ("Selfie", on: boolean) hold up / put away the selfie stick.
 local PHONE = "Phone"
+-- Radio vote skip. Client -> server: ("Skip") vote / take back a vote to skip the current song.
+-- Server -> all clients: ("SkipVote", name: string, votes: number, needed: number)
+--   | ("Skipped", title: string) - shown in chat.
+local RADIO = "Radio"
 
 local Remotes = {}
 
@@ -60,6 +64,11 @@ end
 -- Both sides: the phone remote. On the client this waits until the server has made it.
 function Remotes.phone(): RemoteEvent
 	return event(PHONE)
+end
+
+-- Both sides: the radio remote. On the client this waits until the server has made it.
+function Remotes.radio(): RemoteEvent
+	return event(RADIO)
 end
 
 -- Client: the admin remote, or nil if it doesn't show up in time (e.g. in PROD it never does).
