@@ -62,6 +62,16 @@ local Config = {
 		AnswerTimeout = 20,
 	},
 
+	Badges = {
+		-- "Unang Tanaw" welcome badge, given on join. Keyed by universe ID because each
+		-- experience has its own badges. 0 = not created yet (paste the badge ID from Creator Hub).
+		Welcome = {
+			[10777857627] = 0, -- DEV
+			[10777857441] = 0, -- STAGING
+			[10777811003] = 0, -- PROD
+		} :: { [number]: number },
+	},
+
 	SpawnView = {
 		-- Where the camera starts after spawning: this far behind the character, this much higher.
 		CameraDistance = 12,
