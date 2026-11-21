@@ -50,6 +50,18 @@ local Config = {
 		FieldOfView = 80,
 	},
 
+	Cafe = {
+		-- Parts tagged with this in Studio get an "Order" prompt (e.g. the Hiraya cashier spot).
+		Tag = "CafeOrder",
+		Question = "Hi! Gusto mo ng coffee?",
+		ToolName = "Bubble Tea",
+		-- How close a player must be to order, and to accept after being asked.
+		PromptDistance = 13,
+		AcceptDistance = 18,
+		-- How long the question stays valid / on screen, in seconds.
+		AnswerTimeout = 20,
+	},
+
 	SpawnView = {
 		-- Where the camera starts after spawning: this far behind the character, this much higher.
 		CameraDistance = 12,

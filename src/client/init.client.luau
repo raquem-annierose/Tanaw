@@ -5,6 +5,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local AdminController = require(script.controllers.AdminController)
+local CafeController = require(script.controllers.CafeController)
 local ChatTagController = require(script.controllers.ChatTagController)
 local Config = require(ReplicatedStorage.Shared.Config)
 local MovementController = require(script.controllers.MovementController)
@@ -22,6 +23,7 @@ local player = Players.LocalPlayer
 print(`Welcome to {Config.GameName}, {player.DisplayName}!`)
 
 AdminController.start()
+CafeController.start()
 ChatTagController.start()
 MovementController.start()
 MusicController.start()

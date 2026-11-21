@@ -11,6 +11,8 @@ local FOLDER = "Remotes"
 -- Server -> admin's client: turn an admin effect on/off, or show a notice in chat.
 --   ("Fly", on: boolean) | ("Noclip", on: boolean) | ("Notice", text: string)
 local ADMIN = "Admin"
+-- Café cashier. Client -> server: ("Accept") the player said yes to the order question.
+local CAFE = "Cafe"
 
 local Remotes = {}
 
@@ -46,6 +48,11 @@ end
 -- Server: creates the admin remote. Only called where admin commands are on.
 function Remotes.admin(): RemoteEvent
 	return event(ADMIN)
+end
+
+-- Both sides: the café remote. On the client this waits until the server has made it.
+function Remotes.cafe(): RemoteEvent
+	return event(CAFE)
 end
 
 -- Client: the admin remote, or nil if it doesn't show up in time (e.g. in PROD it never does).
