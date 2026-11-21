@@ -1,11 +1,11 @@
 --!strict
--- Every player's in-game phone. A 📱 button on the right edge of the screen opens it.
+-- Every player's in-game phone. A phone button on the right edge of the screen opens it.
 --
 -- Home screen: clock, date and the apps:
 --   Camera  - selfie / normal camera with a shutter that saves to Roblox Captures (CameraApp)
 --   Music   - Tanaw Radio song, volume and mute (MusicApp)
 --   Emotes  - wave, dance, ... (EmotesApp)
--- The white bar at the bottom goes back home; the 📱 button closes the phone.
+-- The white bar at the bottom goes back home; the phone button closes the phone.
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -50,11 +50,12 @@ type AppInfo = {
 
 local APPS: { AppInfo } = {
 	{
+		-- Light silver tile with a drawn black camera (see drawCamera), like a real phone's.
 		Id = "Camera",
 		Label = "Camera",
-		Icon = "📷",
-		Top = Color3.fromRGB(80, 80, 92),
-		Bottom = Color3.fromRGB(34, 34, 40),
+		Icon = "",
+		Top = Color3.fromRGB(242, 242, 246),
+		Bottom = Color3.fromRGB(178, 180, 190),
 	},
 	{
 		Id = "Music",
@@ -78,12 +79,63 @@ local isOpen = false
 local phoneFrame: Frame? = nil
 local pages: { [string]: Frame } = {}
 local openTween: Tween? = nil
+-- Updates the phone button's look (open / closed). Set in Phone.start.
+local refreshToggle: () -> () = function() end
 
 local function gradient(parent: GuiObject, top: Color3, bottom: Color3)
 	local g = Instance.new("UIGradient")
 	g.Rotation = 90
 	g.Color = ColorSequence.new(top, bottom)
 	g.Parent = parent
+end
+
+-- Camera glyph drawn from frames: emoji cameras are dark and tiny on small screens.
+local function drawCamera(icon: GuiObject)
+	local ink = Color3.fromRGB(28, 28, 32)
+
+	local bump = PhoneUi.frame("Bump", icon)
+	bump.AnchorPoint = Vector2.new(0.5, 1)
+	bump.Position = UDim2.new(0.5, -5, 0.5, -10)
+	bump.Size = UDim2.fromOffset(16, 7)
+	bump.BackgroundTransparency = 0
+	bump.BackgroundColor3 = ink
+	PhoneUi.corner(bump, UDim.new(0, 3))
+
+	local body = PhoneUi.frame("Body", icon)
+	body.AnchorPoint = Vector2.new(0.5, 0.5)
+	body.Position = UDim2.new(0.5, 0, 0.5, 3)
+	body.Size = UDim2.fromOffset(42, 28)
+	body.BackgroundTransparency = 0
+	body.BackgroundColor3 = ink
+	PhoneUi.corner(body, UDim.new(0, 8))
+
+	local lens = PhoneUi.frame("Lens", body)
+	lens.AnchorPoint = Vector2.new(0.5, 0.5)
+	lens.Position = UDim2.fromScale(0.5, 0.5)
+	lens.Size = UDim2.fromOffset(18, 18)
+	lens.BackgroundTransparency = 0
+	lens.BackgroundColor3 = Color3.fromRGB(70, 74, 88)
+	PhoneUi.corner(lens)
+	local ring = Instance.new("UIStroke")
+	ring.Color = Color3.fromRGB(235, 235, 240)
+	ring.Thickness = 2.5
+	ring.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	ring.Parent = lens
+
+	local glint = PhoneUi.frame("Glint", lens)
+	glint.Position = UDim2.fromOffset(4, 4)
+	glint.Size = UDim2.fromOffset(4, 4)
+	glint.BackgroundTransparency = 0.2
+	glint.BackgroundColor3 = PhoneUi.WHITE
+	PhoneUi.corner(glint)
+
+	local flashDot = PhoneUi.frame("Flash", body)
+	flashDot.AnchorPoint = Vector2.new(1, 0)
+	flashDot.Position = UDim2.new(1, -5, 0, 5)
+	flashDot.Size = UDim2.fromOffset(4, 4)
+	flashDot.BackgroundTransparency = 0
+	flashDot.BackgroundColor3 = PhoneUi.ACCENT
+	PhoneUi.corner(flashDot)
 end
 
 local function showPage(id: string)
@@ -130,11 +182,13 @@ function Phone.open()
 		return
 	end
 	isOpen = true
+	refreshToggle()
 	slide(true)
 end
 
 function Phone.close()
 	isOpen = false
+	refreshToggle()
 	slide(false)
 end
 
@@ -207,6 +261,9 @@ local function buildHome(page: Frame)
 		icon.TextSize = 32
 		PhoneUi.corner(icon, UDim.new(0, 16))
 		gradient(icon, app.Top, app.Bottom)
+		if app.Id == "Camera" then
+			drawCamera(icon)
+		end
 		icon.Activated:Connect(function()
 			openApp(app.Id)
 		end)
@@ -228,21 +285,66 @@ function Phone.start()
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.DisplayOrder = 4
 
-	-- 📱 button on the right edge, clear of the jump button (bottom right) and player list.
+	-- Phone button on the right edge, clear of the jump button (bottom right) and player list:
+	-- a sunset-gradient squircle with a drawn phone outline. White while the phone is open.
 	local toggle = PhoneUi.button("PhoneButton", gui)
 	toggle.AnchorPoint = Vector2.new(1, 0.5)
 	toggle.Position = UDim2.new(1, -12, 0.5, 0)
-	toggle.Size = UDim2.fromOffset(52, 52)
-	toggle.BackgroundColor3 = PhoneUi.INK
-	toggle.BackgroundTransparency = 0.3
-	toggle.Text = "📱"
-	toggle.TextSize = 26
-	PhoneUi.corner(toggle)
+	toggle.Size = UDim2.fromOffset(54, 54)
+	toggle.BackgroundColor3 = PhoneUi.WHITE
+	PhoneUi.corner(toggle, UDim.new(0, 18))
+	local toggleGradient = Instance.new("UIGradient")
+	toggleGradient.Rotation = 135
+	toggleGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 176, 112)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(226, 96, 140)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(110, 64, 160)),
+	})
+	toggleGradient.Parent = toggle
 	local toggleStroke = Instance.new("UIStroke")
 	toggleStroke.Color = PhoneUi.WHITE
-	toggleStroke.Transparency = 0.8
+	toggleStroke.Transparency = 0.6
+	toggleStroke.Thickness = 1.5
 	toggleStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	toggleStroke.Parent = toggle
+
+	local glyph = PhoneUi.frame("Glyph", toggle)
+	glyph.AnchorPoint = Vector2.new(0.5, 0.5)
+	glyph.Position = UDim2.fromScale(0.5, 0.5)
+	glyph.Size = UDim2.fromOffset(18, 30)
+	PhoneUi.corner(glyph, UDim.new(0, 5))
+	local outline = Instance.new("UIStroke")
+	outline.Color = PhoneUi.WHITE
+	outline.Thickness = 2.5
+	outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	outline.Parent = glyph
+	local notch = PhoneUi.frame("Island", glyph)
+	notch.AnchorPoint = Vector2.new(0.5, 0)
+	notch.Position = UDim2.new(0.5, 0, 0, 3)
+	notch.Size = UDim2.fromOffset(7, 2)
+	notch.BackgroundTransparency = 0
+	notch.BackgroundColor3 = PhoneUi.WHITE
+	PhoneUi.corner(notch)
+
+	-- Squish a little on press.
+	local press = Instance.new("UIScale")
+	press.Parent = toggle
+	toggle.MouseButton1Down:Connect(function()
+		TweenService:Create(press, TweenInfo.new(0.08), { Scale = 0.9 }):Play()
+	end)
+	local function release()
+		TweenService:Create(press, TweenInfo.new(0.15, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	end
+	toggle.MouseButton1Up:Connect(release)
+	toggle.MouseLeave:Connect(release)
+
+	refreshToggle = function()
+		-- Without the gradient the white background shows: a white button with a dark phone.
+		toggleGradient.Enabled = not isOpen
+		outline.Color = if isOpen then PhoneUi.INK else PhoneUi.WHITE
+		notch.BackgroundColor3 = outline.Color
+	end
+	refreshToggle()
 	toggle.Activated:Connect(Phone.toggle)
 
 	-- Phone body (bezel) -------------------------------------------------------------------------
