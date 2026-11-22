@@ -6,6 +6,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local FreedomWall = require(ReplicatedStorage.Shared.FreedomWall)
+local LockedOverlay = require(script.Parent.LockedOverlay)
+local UnlockController = require(script.Parent.Parent.Parent.controllers.UnlockController)
 local PhoneUi = require(script.Parent.PhoneUi)
 local QrScanner = require(script.Parent.QrScanner)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -144,7 +146,9 @@ function NotesApp.build(page: Frame, goHome: () -> (), openSelf: () -> ())
 	note.TextTruncate = Enum.TextTruncate.None
 	note.TextTransparency = 0.4
 
-	-- Built last so the scan screen covers the page while it plays.
+	-- Lock screen until the Freedom Wall is unlocked (shared Unlocks), then the scan screen on top
+	-- of everything while it plays.
+	LockedOverlay.attach(page, FreedomWall.Feature)
 	local scanner = QrScanner.build(page)
 
 	local remote = Remotes.freedomWall()
@@ -173,7 +177,9 @@ function NotesApp.build(page: Frame, goHome: () -> (), openSelf: () -> ())
 			scanner.play(function()
 				intro.Text = "✓ Na-scan: Freedom Wall · SkyTerrace"
 				intro.TextColor3 = OK_GREEN
-				box:CaptureFocus()
+				if UnlockController.isUnlocked(FreedomWall.Feature) then
+					box:CaptureFocus()
+				end
 			end, 0.3) -- let the phone slide in first
 		elseif kind == "Posted" then
 			sending = false

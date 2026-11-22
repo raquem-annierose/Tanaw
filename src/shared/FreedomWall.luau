@@ -10,6 +10,9 @@ local FreedomWall = {
 	-- Which face of the wall part shows the notes.
 	WallFace = Enum.NormalId.Left,
 
+	-- Unlock needed to post (shared Unlocks).
+	Feature = "FreedomWall",
+
 	MaxLength = 120,
 	-- Seconds a player must wait between posts.
 	Cooldown = 45,

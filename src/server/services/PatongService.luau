@@ -28,6 +28,10 @@ local Workspace = game:GetService("Workspace")
 
 local Patong = require(ReplicatedStorage.Shared.Patong)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local UnlockService = require(script.Parent.UnlockService)
+
+-- Feature (shared Unlocks) needed to host, join or start a versus room.
+local FEATURE = "Games"
 
 local BOARD_LENGTH = Patong.Width * Patong.Height
 -- Spam protection: ignore messages of one kind closer together than this per player (seconds).
@@ -289,6 +293,9 @@ local function onMessage(player: Player, action: unknown, value: unknown)
 			knockOut(room, player)
 		end
 	elseif not tooSoon(player, "Room") then
+		if action ~= "Leave" and not UnlockService.isUnlocked(player, FEATURE) then
+			return
+		end
 		if action == "Host" then
 			host(player)
 		elseif action == "Join" then

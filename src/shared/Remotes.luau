@@ -24,6 +24,8 @@ local TABLE_GAME = "TableGame"
 -- Server -> all clients: ("SkipVote", name: string, votes: number, needed: number)
 --   | ("Skipped", title: string) - shown in chat.
 local RADIO = "Radio"
+-- Talon race rooms (see TalonService for every message).
+local TALON = "Talon"
 -- Freedom Wall. Client -> server: ("Post", text: string, anonymous: boolean).
 -- Server -> client: ("Open") the player clicked the QR sign | ("Posted") | ("Error", message: string)
 local FREEDOM_WALL = "FreedomWall"
@@ -87,6 +89,11 @@ end
 -- Both sides: the radio remote. On the client this waits until the server has made it.
 function Remotes.radio(): RemoteEvent
 	return event(RADIO)
+end
+
+-- Both sides: the Talon remote. On the client this waits until the server has made it.
+function Remotes.talon(): RemoteEvent
+	return event(TALON)
 end
 
 -- Both sides: the table games remote. On the client this waits until the server has made it.

@@ -132,6 +132,16 @@ local function load(player: Player)
 	end
 end
 
+-- All-time seconds in Tanaw for a player in this server: the saved total plus this visit's time
+-- not saved yet. Until the saved total loads (or if it can't), only this visit counts.
+function PlaytimeService.totalSeconds(player: Player): number?
+	local last = countedTo[player]
+	if not last then
+		return nil
+	end
+	return (saved[player] or 0) + (unsaved[player] or 0) + (os.clock() - last)
+end
+
 -- Board -----------------------------------------------------------------------------------------
 
 local function label(name: string, parent: Instance, text: string): TextLabel

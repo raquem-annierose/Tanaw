@@ -14,6 +14,7 @@ local TextService = game:GetService("TextService")
 
 local FreedomWall = require(ReplicatedStorage.Shared.FreedomWall)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local UnlockService = require(script.Parent.UnlockService)
 
 local PIXELS_PER_STUD = 50
 local HEADER = 64
@@ -259,6 +260,11 @@ function FreedomWallService.start()
 	remote.OnServerEvent:Connect(
 		function(player: Player, kind: unknown, text: unknown, anonymous: unknown)
 			if kind ~= "Post" or typeof(text) ~= "string" then
+				return
+			end
+			local unlock = UnlockService.status(player, FreedomWall.Feature)
+			if not unlock.unlocked then
+				remote:FireClient(player, "Error", unlock.message)
 				return
 			end
 			local now = os.clock()
