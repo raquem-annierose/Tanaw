@@ -24,6 +24,9 @@ local TABLE_GAME = "TableGame"
 -- Server -> all clients: ("SkipVote", name: string, votes: number, needed: number)
 --   | ("Skipped", title: string) - shown in chat.
 local RADIO = "Radio"
+-- Freedom Wall. Client -> server: ("Post", text: string, anonymous: boolean).
+-- Server -> client: ("Open") the player clicked the QR sign | ("Posted") | ("Error", message: string)
+local FREEDOM_WALL = "FreedomWall"
 
 local Remotes = {}
 
@@ -69,6 +72,11 @@ end
 -- Both sides: the phone remote. On the client this waits until the server has made it.
 function Remotes.phone(): RemoteEvent
 	return event(PHONE)
+end
+
+-- Both sides: the Freedom Wall remote. On the client this waits until the server has made it.
+function Remotes.freedomWall(): RemoteEvent
+	return event(FREEDOM_WALL)
 end
 
 -- Both sides: the Patong remote. On the client this waits until the server has made it.

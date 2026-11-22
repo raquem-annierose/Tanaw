@@ -6,6 +6,7 @@
 --   Music   - Tanaw Radio song, volume and mute (MusicApp)
 --   Emotes  - wave, dance, ... (EmotesApp)
 --   Patong  - falling-block game, alone or versus nearby players (PatongApp)
+-- Notes (Freedom Wall, NotesApp) is not on the dock: it opens when the player clicks the QR sign.
 -- The white bar at the bottom goes back home; the phone button closes the phone.
 
 local Players = game:GetService("Players")
@@ -15,6 +16,7 @@ local Workspace = game:GetService("Workspace")
 local CameraApp = require(script.Parent.CameraApp)
 local EmotesApp = require(script.Parent.EmotesApp)
 local MusicApp = require(script.Parent.MusicApp)
+local NotesApp = require(script.Parent.NotesApp)
 local PatongApp = require(script.Parent.PatongApp)
 local PhoneUi = require(script.Parent.PhoneUi)
 
@@ -472,6 +474,15 @@ function Phone.start()
 			CameraApp.close()
 		end
 		showPage("Patong")
+		if not isOpen then
+			Phone.open()
+		end
+	end)
+	NotesApp.build(newPage("Notes", true), goHome, function()
+		if CameraApp.isOpen() then
+			CameraApp.close()
+		end
+		showPage("Notes")
 		if not isOpen then
 			Phone.open()
 		end
