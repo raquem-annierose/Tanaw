@@ -5,6 +5,10 @@
 --
 -- Seats have CanTouch off in Studio, so players only sit through the prompt, never by
 -- walking over a pallet. Jump to stand up (Roblox default).
+--
+-- Chairs and stools: give the Seat the attribute Pose = "Chair". They use Roblox's normal
+-- sitting pose (the random poses are for sitting on the floor / pallets), and their prompt sits
+-- a little lower so it doesn't cover things on the table (like the question ball).
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -14,6 +18,8 @@ local SitPoses = require(ReplicatedStorage.Shared.SitPoses)
 local SitService = {}
 
 local rng = Random.new()
+-- Chair prompts move down by this many pixels (UIOffset; negative Y is down).
+local CHAIR_PROMPT_DROP = -60
 
 local function randomPose(): string
 	return SitPoses.Order[rng:NextInteger(1, #SitPoses.Order)]
@@ -35,6 +41,14 @@ local function setupSeat(instance: Instance)
 	prompt.RequiresLineOfSight = false
 	-- Only the closest seat shows a prompt, so a row of pallets doesn't stack up prompts.
 	prompt.Exclusivity = Enum.ProximityPromptExclusivity.OnePerButton
+	local function isChair(): boolean
+		return seat:GetAttribute("Pose") == "Chair"
+	end
+	local function applyStyle()
+		prompt.UIOffset = if isChair() then Vector2.new(0, CHAIR_PROMPT_DROP) else Vector2.zero
+	end
+	applyStyle()
+	seat:GetAttributeChangedSignal("Pose"):Connect(applyStyle)
 	prompt.Parent = seat
 
 	prompt.Triggered:Connect(function(player: Player)
@@ -56,7 +70,10 @@ local function setupSeat(instance: Instance)
 		if occupant then
 			local character = occupant.Parent
 			if character and character:IsA("Model") then
-				character:SetAttribute(SitPoses.Attribute, randomPose())
+				-- Chairs keep Roblox's own sitting pose (no attribute).
+				if not isChair() then
+					character:SetAttribute(SitPoses.Attribute, randomPose())
+				end
 				seatedCharacter = character
 			end
 		end

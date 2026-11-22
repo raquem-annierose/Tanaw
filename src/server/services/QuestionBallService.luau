@@ -100,13 +100,27 @@ local function setupBall(instance: Instance)
 	local ball: BasePart = instance
 	local gui, card, header, question = buildCard(ball)
 
+	-- Click / tap the ball, or use its "Tanong" prompt. The prompt uses its own key (F) so it
+	-- shows next to the chairs' "Sit" prompts instead of being hidden by them.
 	local click = Instance.new("ClickDetector")
 	click.MaxActivationDistance = 16
 	click.Parent = ball
 
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "AskPrompt"
+	prompt.ActionText = "Tanong"
+	prompt.ObjectText = ""
+	prompt.KeyboardKeyCode = Enum.KeyCode.F
+	prompt.GamepadKeyCode = Enum.KeyCode.ButtonY
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 8
+	prompt.RequiresLineOfSight = false
+	prompt.UIOffset = Vector2.new(0, 40)
+	prompt.Parent = ball
+
 	local lastClick = 0
 	local showId = 0
-	click.MouseClick:Connect(function(player: Player)
+	local function ask(player: Player)
 		local now = os.clock()
 		if now - lastClick < TableQuestions.Cooldown then
 			return
@@ -130,7 +144,9 @@ local function setupBall(instance: Instance)
 				gui.Enabled = false
 			end
 		end)
-	end)
+	end
+	click.MouseClick:Connect(ask)
+	prompt.Triggered:Connect(ask)
 end
 
 function QuestionBallService.start()
