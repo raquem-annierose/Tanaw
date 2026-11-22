@@ -6,6 +6,8 @@
 --   UserId (number)  whose avatar to wear
 --   Label  (string)  optional tag shown above the head, e.g. "Cashier"
 -- The avatar is loaded when the server starts, so outfit changes show up on the next server.
+--
+-- Other services can stand an avatar on a spot too (spawnAvatar), e.g. the playtime Top 3.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -30,7 +32,7 @@ local function loadAvatar(userId: number): Model?
 	return nil
 end
 
-local function playIdle(humanoid: Humanoid)
+local function playLoop(humanoid: Humanoid, animationId: string)
 	local animator: Animator
 	local existing = humanoid:FindFirstChildOfClass("Animator")
 	if existing then
@@ -40,7 +42,7 @@ local function playIdle(humanoid: Humanoid)
 		animator.Parent = humanoid
 	end
 	local animation = Instance.new("Animation")
-	animation.AnimationId = IDLE_ANIMATION
+	animation.AnimationId = animationId
 	local track = animator:LoadAnimation(animation)
 	track.Looped = true
 	track:Play()
@@ -50,7 +52,8 @@ end
 local function addLabel(head: BasePart, text: string)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "NpcLabel"
-	gui.Size = UDim2.fromOffset(110, 28)
+	-- Wide enough for long names; the pill inside is only as wide as its text.
+	gui.Size = UDim2.fromOffset(240, 28)
 	gui.StudsOffsetWorldSpace = Vector3.new(0, head.Size.Y / 2 + 1.2, 0)
 	gui.MaxDistance = LABEL_DISTANCE
 	gui.AlwaysOnTop = false
@@ -59,7 +62,8 @@ local function addLabel(head: BasePart, text: string)
 	local pill = Instance.new("TextLabel")
 	pill.AnchorPoint = Vector2.new(0.5, 0.5)
 	pill.Position = UDim2.fromScale(0.5, 0.5)
-	pill.Size = UDim2.fromScale(1, 1)
+	pill.Size = UDim2.fromScale(0, 1)
+	pill.AutomaticSize = Enum.AutomaticSize.X
 	pill.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	pill.BackgroundTransparency = 0.35
 	pill.Font = Enum.Font.GothamBold
@@ -80,26 +84,43 @@ local function addLabel(head: BasePart, text: string)
 	gui.Parent = head
 end
 
-local function spawnNpc(spot: Instance)
-	if not spot:IsA("BasePart") then
+-- Changes (or adds, or with "" removes) the tag above an NPC's head.
+function NpcService.setLabel(model: Model, text: string)
+	local head = model:FindFirstChild("Head")
+	if not head or not head:IsA("BasePart") then
 		return
 	end
-	local userId = spot:GetAttribute("UserId")
-	if typeof(userId) ~= "number" then
-		warn(`[NpcService] {spot:GetFullName()} has no UserId attribute`)
-		return
+	local gui = head:FindFirstChild("NpcLabel")
+	local pill = gui and gui:FindFirstChildOfClass("TextLabel")
+	if text == "" then
+		if gui then
+			gui:Destroy()
+		end
+	elseif pill then
+		pill.Text = text
+	else
+		addLabel(head, text)
 	end
-	local label = spot:GetAttribute("Label")
+end
 
+-- Loads userId's avatar and stands it on `spot` (see the top of this file), next to the spot in
+-- the Explorer, looping `animationId` (default: idle). Yields while the avatar loads. Returns nil
+-- if it couldn't load.
+function NpcService.spawnAvatar(
+	spot: BasePart,
+	userId: number,
+	label: string?,
+	animationId: number?
+): Model?
 	local model = loadAvatar(userId)
 	if not model then
-		return
+		return nil
 	end
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	local root = model:FindFirstChild("HumanoidRootPart")
 	if not humanoid or not root or not root:IsA("BasePart") then
 		model:Destroy()
-		return
+		return nil
 	end
 
 	model.Name = `{spot.Name}Npc`
@@ -115,13 +136,26 @@ local function spawnNpc(spot: Instance)
 		then humanoid.HipHeight + root.Size.Y / 2
 		else 3
 	model:PivotTo(spot.CFrame * CFrame.new(0, -spot.Size.Y / 2 + lift, 0))
-	local head = model:FindFirstChild("Head")
-	if typeof(label) == "string" and label ~= "" and head and head:IsA("BasePart") then
-		addLabel(head, label)
+	if label then
+		NpcService.setLabel(model, label)
 	end
 	model.Parent = spot.Parent
 
-	playIdle(humanoid)
+	playLoop(humanoid, if animationId then `rbxassetid://{animationId}` else IDLE_ANIMATION)
+	return model
+end
+
+local function spawnNpc(spot: Instance)
+	if not spot:IsA("BasePart") then
+		return
+	end
+	local userId = spot:GetAttribute("UserId")
+	if typeof(userId) ~= "number" then
+		warn(`[NpcService] {spot:GetFullName()} has no UserId attribute`)
+		return
+	end
+	local label = spot:GetAttribute("Label")
+	NpcService.spawnAvatar(spot, userId, if typeof(label) == "string" then label else nil)
 end
 
 function NpcService.start()

@@ -78,6 +78,28 @@ local Config = {
 		} :: { [number]: number },
 	},
 
+	Playtime = {
+		-- Tag a Part with this in Studio to show the top players on its front face. Set a string
+		-- attribute "Face" (Front, Back, Left, Right, Top, Bottom) to use another face.
+		BoardTag = "PlaytimeBoard",
+		-- Tag for the spots where the top players' avatars stand (with a "Rank" attribute).
+		TopNpcTag = "PlaytimeTop",
+		-- Dance (Emotes Id) each of the top players' avatars does, by rank. No dance = idle.
+		TopDances = { "Dance1", "Dance2", "Dance3" } :: { string },
+		-- OrderedDataStore with every player's total seconds in the game. Changing the name starts
+		-- everyone from zero.
+		StoreName = "Playtime_v1",
+		-- How many players the board shows.
+		TopCount = 10,
+		-- Column in the player list (Tab) with each player's all-time minutes, and how often
+		-- (seconds) it updates. The list puts the most minutes on top.
+		StatName = "Minutes",
+		StatInterval = 10,
+		-- Seconds between saves of each player's new time, and between board refreshes.
+		SaveInterval = 120,
+		RefreshInterval = 60,
+	},
+
 	SpawnView = {
 		-- Where the camera starts after spawning: this far behind the character, this much higher.
 		CameraDistance = 12,
