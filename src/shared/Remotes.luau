@@ -15,6 +15,8 @@ local ADMIN = "Admin"
 local CAFE = "Cafe"
 -- Phone. Client -> server: ("Selfie", on: boolean) hold up / put away the selfie stick.
 local PHONE = "Phone"
+-- Patong rooms and versus games (see PatongService for every message).
+local PATONG = "Patong"
 -- Radio vote skip. Client -> server: ("Skip") vote / take back a vote to skip the current song.
 -- Server -> all clients: ("SkipVote", name: string, votes: number, needed: number)
 --   | ("Skipped", title: string) - shown in chat.
@@ -64,6 +66,11 @@ end
 -- Both sides: the phone remote. On the client this waits until the server has made it.
 function Remotes.phone(): RemoteEvent
 	return event(PHONE)
+end
+
+-- Both sides: the Patong remote. On the client this waits until the server has made it.
+function Remotes.patong(): RemoteEvent
+	return event(PATONG)
 end
 
 -- Both sides: the radio remote. On the client this waits until the server has made it.

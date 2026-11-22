@@ -5,6 +5,7 @@
 --   Camera  - selfie / normal camera with a shutter that saves to Roblox Captures (CameraApp)
 --   Music   - Tanaw Radio song, volume and mute (MusicApp)
 --   Emotes  - wave, dance, ... (EmotesApp)
+--   Patong  - falling-block game, alone or versus nearby players (PatongApp)
 -- The white bar at the bottom goes back home; the phone button closes the phone.
 
 local Players = game:GetService("Players")
@@ -14,6 +15,7 @@ local Workspace = game:GetService("Workspace")
 local CameraApp = require(script.Parent.CameraApp)
 local EmotesApp = require(script.Parent.EmotesApp)
 local MusicApp = require(script.Parent.MusicApp)
+local PatongApp = require(script.Parent.PatongApp)
 local PhoneUi = require(script.Parent.PhoneUi)
 
 local PHONE_SIZE = Vector2.new(300, 620)
@@ -71,13 +73,24 @@ local APPS: { AppInfo } = {
 		Top = Color3.fromRGB(255, 200, 120),
 		Bottom = Color3.fromRGB(236, 130, 70),
 	},
+	{
+		Id = "Patong",
+		Label = "Patong",
+		Icon = "🧱",
+		Top = Color3.fromRGB(130, 120, 240),
+		Bottom = Color3.fromRGB(70, 50, 160),
+	},
 }
+-- Dock icon size and spacing: four icons fit the dock.
+local ICON_SIZE = 54
+local ICON_GAP = 6
 
 local Phone = {}
 
 local isOpen = false
 local phoneFrame: Frame? = nil
 local pages: { [string]: Frame } = {}
+local currentPage = "Home"
 local openTween: Tween? = nil
 -- Updates the phone button's look (open / closed). Set in Phone.start.
 local refreshToggle: () -> () = function() end
@@ -138,10 +151,17 @@ local function drawCamera(icon: GuiObject)
 	PhoneUi.corner(flashDot)
 end
 
+-- Tells apps that care whether they are on screen (Patong pauses / takes the keyboard).
+local function refreshActiveApp()
+	PatongApp.setActive(isOpen and currentPage == "Patong")
+end
+
 local function showPage(id: string)
+	currentPage = id
 	for pageId, page in pages do
 		page.Visible = pageId == id
 	end
+	refreshActiveApp()
 end
 
 local function goHome()
@@ -183,12 +203,14 @@ function Phone.open()
 	end
 	isOpen = true
 	refreshToggle()
+	refreshActiveApp()
 	slide(true)
 end
 
 function Phone.close()
 	isOpen = false
 	refreshToggle()
+	refreshActiveApp()
 	slide(false)
 end
 
@@ -245,20 +267,20 @@ local function buildHome(page: Frame)
 	layout.FillDirection = Enum.FillDirection.Horizontal
 	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	layout.VerticalAlignment = Enum.VerticalAlignment.Center
-	layout.Padding = UDim.new(0, 18)
+	layout.Padding = UDim.new(0, ICON_GAP)
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = dock
 
 	for order, app in APPS do
 		local holder = PhoneUi.frame(app.Id, dock)
 		holder.LayoutOrder = order
-		holder.Size = UDim2.fromOffset(64, 84)
+		holder.Size = UDim2.fromOffset(ICON_SIZE, ICON_SIZE + 20)
 
 		local icon = PhoneUi.button("Icon", holder)
-		icon.Size = UDim2.fromOffset(64, 64)
+		icon.Size = UDim2.fromOffset(ICON_SIZE, ICON_SIZE)
 		icon.BackgroundColor3 = PhoneUi.WHITE
 		icon.Text = app.Icon
-		icon.TextSize = 32
+		icon.TextSize = 28
 		PhoneUi.corner(icon, UDim.new(0, 16))
 		gradient(icon, app.Top, app.Bottom)
 		if app.Id == "Camera" then
@@ -269,8 +291,8 @@ local function buildHome(page: Frame)
 		end)
 
 		local name = PhoneUi.label("Label", holder, app.Label, 13)
-		name.Position = UDim2.fromOffset(-8, 66)
-		name.Size = UDim2.fromOffset(80, 16)
+		name.Position = UDim2.fromOffset(-8, ICON_SIZE + 2)
+		name.Size = UDim2.fromOffset(ICON_SIZE + 16, 16)
 	end
 end
 
@@ -445,6 +467,15 @@ function Phone.start()
 	buildHome(newPage("Home", false))
 	MusicApp.build(newPage("Music", true), goHome)
 	EmotesApp.build(newPage("Emotes", true), goHome)
+	PatongApp.build(newPage("Patong", true), goHome, function()
+		if CameraApp.isOpen() then
+			CameraApp.close()
+		end
+		showPage("Patong")
+		if not isOpen then
+			Phone.open()
+		end
+	end)
 	showPage("Home")
 
 	-- Home bar: tap to go back to the home screen.
