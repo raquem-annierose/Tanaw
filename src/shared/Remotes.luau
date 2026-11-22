@@ -17,6 +17,9 @@ local CAFE = "Cafe"
 local PHONE = "Phone"
 -- Patong rooms and versus games (see PatongService for every message).
 local PATONG = "Patong"
+-- Table games. Client -> server: ("Move", cell) | ("Tap") | ("Pick", choice) for the table the
+-- player sits at. Server -> client: ("State", state) | ("Closed") (see TableGameService).
+local TABLE_GAME = "TableGame"
 -- Radio vote skip. Client -> server: ("Skip") vote / take back a vote to skip the current song.
 -- Server -> all clients: ("SkipVote", name: string, votes: number, needed: number)
 --   | ("Skipped", title: string) - shown in chat.
@@ -76,6 +79,11 @@ end
 -- Both sides: the radio remote. On the client this waits until the server has made it.
 function Remotes.radio(): RemoteEvent
 	return event(RADIO)
+end
+
+-- Both sides: the table games remote. On the client this waits until the server has made it.
+function Remotes.tableGame(): RemoteEvent
+	return event(TABLE_GAME)
 end
 
 -- Client: the admin remote, or nil if it doesn't show up in time (e.g. in PROD it never does).
