@@ -33,8 +33,13 @@ local PHONE_SIZE = Vector2.new(300, 620)
 local BEZEL = 10
 local STATUS_HEIGHT = 44
 local HOME_BAR_HEIGHT = 28
--- Gap between the phone and the right edge of the screen (room for the 📱 button).
+-- Gap between the phone and the right edge of the screen (room for the 📱 button). On touch
+-- screens the button sits above the Lock / jump buttons, and the gap grows to clear them.
 local RIGHT_GAP = 80
+local rightGap = RIGHT_GAP
+-- Space between the phone button and the Lock button under it (touch screens).
+local TOUCH_GAP = 10
+local BUTTON_SIZE = 54
 local OPEN_TIME = 0.35
 
 local DAYS = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" }
@@ -203,9 +208,7 @@ local function slide(open: boolean)
 	if openTween then
 		openTween:Cancel()
 	end
-	local target = if open
-		then UDim2.new(1, -RIGHT_GAP, 0.5, 0)
-		else UDim2.new(1, -RIGHT_GAP, 1.6, 0)
+	local target = if open then UDim2.new(1, -rightGap, 0.5, 0) else UDim2.new(1, -rightGap, 1.6, 0)
 	if open then
 		frame.Visible = true
 	end
@@ -511,7 +514,7 @@ function Phone.start()
 	local toggle = PhoneUi.button("PhoneButton", gui)
 	toggle.AnchorPoint = Vector2.new(1, 0.5)
 	toggle.Position = UDim2.new(1, -12, 0.5, 0)
-	toggle.Size = UDim2.fromOffset(54, 54)
+	toggle.Size = UDim2.fromOffset(BUTTON_SIZE, BUTTON_SIZE)
 	toggle.BackgroundColor3 = PhoneUi.WHITE
 	PhoneUi.corner(toggle, UDim.new(0, 18))
 	local toggleGradient = Instance.new("UIGradient")
@@ -571,7 +574,7 @@ function Phone.start()
 	-- Phone body (bezel) -------------------------------------------------------------------------
 	local body = PhoneUi.frame("Phone", gui)
 	body.AnchorPoint = Vector2.new(1, 0.5)
-	body.Position = UDim2.new(1, -RIGHT_GAP, 1.6, 0)
+	body.Position = UDim2.new(1, -rightGap, 1.6, 0)
 	body.Size = UDim2.fromOffset(PHONE_SIZE.X, PHONE_SIZE.Y)
 	body.BackgroundTransparency = 0
 	body.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
@@ -588,12 +591,18 @@ function Phone.start()
 	-- Shrink the phone on small screens so it always fits.
 	local scale = Instance.new("UIScale")
 	scale.Parent = body
+	-- Fit inside the area this UI may use (below Roblox's top bar), with a small margin; small
+	-- landscape phones get a smaller phone instead of one cut off at the top.
 	local function fit()
-		local camera = Workspace.CurrentCamera
-		local height = if camera then camera.ViewportSize.Y else 720
-		scale.Scale = math.clamp((height - 60) / PHONE_SIZE.Y, 0.5, 1)
+		local height = gui.AbsoluteSize.Y
+		if height <= 0 then
+			local camera = Workspace.CurrentCamera
+			height = if camera then camera.ViewportSize.Y else 720
+		end
+		scale.Scale = math.clamp((height - 24) / PHONE_SIZE.Y, 0.35, 1)
 	end
 	fit()
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
 	if Workspace.CurrentCamera then
 		Workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fit)
 	end
@@ -718,6 +727,72 @@ function Phone.start()
 		goHome()
 		Phone.open()
 	end)
+
+	-- Touch screens: put the phone button right above the Lock button (ShiftLockButton), which
+	-- follows Roblox's jump button, so the three stack in one column and never overlap. The open
+	-- phone then stops left of that column. Without touch controls: right edge, middle.
+	local lockConnections: { RBXScriptConnection } = {}
+	local function placeToggle()
+		local lockGui = playerGui:FindFirstChild("ShiftLockButton")
+		local lock = lockGui and lockGui:FindFirstChild("Lock")
+		local offset = gui.AbsolutePosition
+		if
+			lockGui
+			and lockGui:IsA("ScreenGui")
+			and lockGui.Enabled
+			and lock
+			and lock:IsA("GuiObject")
+		then
+			local size = math.max(44, math.floor(lock.AbsoluteSize.X))
+			local centerX = lock.AbsolutePosition.X + lock.AbsoluteSize.X / 2 - offset.X
+			local top = lock.AbsolutePosition.Y - offset.Y
+			toggle.AnchorPoint = Vector2.new(0.5, 1)
+			toggle.Position = UDim2.fromOffset(centerX, top - TOUCH_GAP)
+			toggle.Size = UDim2.fromOffset(size, size)
+			-- Clear the whole column (jump buttons are wider than the Lock button).
+			rightGap = math.max(RIGHT_GAP, gui.AbsoluteSize.X - (centerX - size * 0.75) + TOUCH_GAP)
+		else
+			toggle.AnchorPoint = Vector2.new(1, 0.5)
+			toggle.Position = UDim2.new(1, -12, 0.5, 0)
+			toggle.Size = UDim2.fromOffset(BUTTON_SIZE, BUTTON_SIZE)
+			rightGap = RIGHT_GAP
+		end
+		if isOpen and not openTween then
+			body.Position = UDim2.new(1, -rightGap, 0.5, 0)
+		elseif isOpen then
+			slide(true)
+		end
+	end
+	local function watchLock()
+		for _, connection in lockConnections do
+			connection:Disconnect()
+		end
+		table.clear(lockConnections)
+		local lockGui = playerGui:FindFirstChild("ShiftLockButton")
+		local lock = lockGui and lockGui:FindFirstChild("Lock")
+		if lockGui and lockGui:IsA("ScreenGui") and lock and lock:IsA("GuiObject") then
+			table.insert(
+				lockConnections,
+				lockGui:GetPropertyChangedSignal("Enabled"):Connect(placeToggle)
+			)
+			table.insert(
+				lockConnections,
+				lock:GetPropertyChangedSignal("AbsolutePosition"):Connect(placeToggle)
+			)
+			table.insert(
+				lockConnections,
+				lock:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeToggle)
+			)
+		end
+		placeToggle()
+	end
+	playerGui.ChildAdded:Connect(function(child: Instance)
+		if child.Name == "ShiftLockButton" then
+			watchLock()
+		end
+	end)
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeToggle)
+	watchLock()
 
 	gui.Parent = playerGui
 end
