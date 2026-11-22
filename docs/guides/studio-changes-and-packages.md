@@ -19,7 +19,7 @@ How changes are tracked in Tanaw, and how to undo a mistake without losing every
 
 A **package** is a model with its own version history. If someone breaks the Stalls, you roll back **only the Stalls**. Hiraya, the seating, and everything else stay as they are.
 
-Packages we use: `Hiraya`, `Stalls`, `Seating`, `StringLights`, `Surroundings`, `ParkingLot`. Turn a new big build into a package the same way.
+Packages we use: `Hiraya`, `Stalls`, `Seating`, `Plateau` (with `Terraces` inside), `StringLights`, `ParkingLot`, `Playground`, `Surroundings`. `Overlook` itself is a plain Model, not a package. Turn a new big build into a package the same way.
 
 ### Make a package
 
