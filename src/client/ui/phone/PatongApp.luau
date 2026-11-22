@@ -4,12 +4,12 @@
 -- Menu:        Single Player or Multiplayer.
 -- Multiplayer: host a room, or join one hosted within Patong.JoinDistance studs of you. The host
 --              taps Start once 2 or more players are in (PatongController / PatongService).
--- Game:        your board, the next piece, score and rows, and in versus the small boards of the
+-- Game:        your board, the next and held piece, score and rows, and in versus the boards of the
 --              others. Clearing 2+ rows with one piece sends grey rows to another player; the red
 --              bar left of the board shows rows coming your way. Last one still playing wins.
 --
 -- Controls: the buttons under the board (hold ◀ ▶ ▼ to repeat). Keyboard, while the game is on
--- screen: ←/→ or A/D move, ↓/S drop faster, ↑/W/X/C turn, Z turn back, Space drop.
+-- screen: ←/→ or A/D move, ↓/S drop faster, ↑/W/X turn, Z turn back, Space drop, C hold.
 -- Single player pauses while the phone is closed or another app is open; versus keeps going.
 
 local ContextActionService = game:GetService("ContextActionService")
@@ -24,7 +24,7 @@ local PatongGame = require(ReplicatedStorage.Shared.PatongGame)
 local PhoneUi = require(script.Parent.PhoneUi)
 
 type Board = PatongGame.PatongGame
--- "Left" | "Right" | "Down" | "Rotate" | "RotateBack" | "Drop"
+-- "Left" | "Right" | "Down" | "Rotate" | "RotateBack" | "Drop" | "Hold"
 type Control = string
 
 local WIDTH = Patong.Width
@@ -69,7 +69,7 @@ local KEYS: { [Enum.KeyCode]: Control } = {
 	[Enum.KeyCode.Up] = "Rotate",
 	[Enum.KeyCode.W] = "Rotate",
 	[Enum.KeyCode.X] = "Rotate",
-	[Enum.KeyCode.C] = "Rotate",
+	[Enum.KeyCode.C] = "Hold",
 	[Enum.KeyCode.Z] = "RotateBack",
 	[Enum.KeyCode.Space] = "Drop",
 }
@@ -85,6 +85,7 @@ local BUTTONS: { { control: Control, text: string } } = {
 	{ control = "Down", text = "▼" },
 	{ control = "Rotate", text = "TURN" },
 	{ control = "Drop", text = "DROP" },
+	{ control = "Hold", text = "HOLD" },
 }
 
 type Opponent = { cells: { Frame }, name: TextLabel }
@@ -155,16 +156,52 @@ local function cellGrid(
 	return cells
 end
 
+-- Modern tile look: rounded, a soft top-to-bottom shade, a shine line along the top, and an
+-- outline used for the landing shadow (off until paint turns it on).
+local function styleTile(cell: Frame, radius: number)
+	PhoneUi.corner(cell, UDim.new(0, radius))
+
+	local shade = Instance.new("UIGradient")
+	shade.Rotation = 90
+	shade.Color = ColorSequence.new(PhoneUi.WHITE, Color3.fromRGB(196, 196, 208))
+	shade.Parent = cell
+
+	local shine = PhoneUi.frame("Shine", cell)
+	shine.Position = UDim2.new(0, 2, 0, 2)
+	shine.Size = UDim2.new(1, -4, 0, math.max(2, radius - 1))
+	shine.BackgroundTransparency = 0.6
+	shine.BackgroundColor3 = PhoneUi.WHITE
+	shine.Visible = false
+	PhoneUi.corner(shine, UDim.new(0, radius))
+
+	local outline = Instance.new("UIStroke")
+	outline.Thickness = 1.5
+	outline.Transparency = 0.2
+	outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	outline.Enabled = false
+	outline.Parent = cell
+end
+
 local function paint(cell: Frame, value: number, emptyTransparency: number)
+	local shine = cell:FindFirstChild("Shine") :: GuiObject?
+	local outline = cell:FindFirstChildOfClass("UIStroke")
+	local isGhost = value > GHOST
 	if value == 0 then
 		cell.BackgroundColor3 = PhoneUi.WHITE
 		cell.BackgroundTransparency = emptyTransparency
-	elseif value > GHOST then
+	elseif isGhost then
 		cell.BackgroundColor3 = COLORS[value - GHOST]
-		cell.BackgroundTransparency = 0.72
+		cell.BackgroundTransparency = if outline then 0.88 else 0.72
 	else
 		cell.BackgroundColor3 = COLORS[value] or COLORS[Patong.Garbage]
 		cell.BackgroundTransparency = 0
+	end
+	if shine then
+		shine.Visible = value ~= 0 and not isGhost
+	end
+	if outline then
+		outline.Enabled = isGhost
+		outline.Color = cell.BackgroundColor3
 	end
 end
 
@@ -242,9 +279,16 @@ function PatongApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 	boardFrame.Size = UDim2.fromOffset(WIDTH * CELL, HEIGHT * CELL)
 	boardFrame.BackgroundTransparency = 0.35
 	boardFrame.BackgroundColor3 = PhoneUi.INK
-	boardFrame.ClipsDescendants = true
-	PhoneUi.corner(boardFrame, UDim.new(0, 6))
+	PhoneUi.corner(boardFrame, UDim.new(0, 10))
+	local boardEdge = Instance.new("UIStroke")
+	boardEdge.Color = PhoneUi.WHITE
+	boardEdge.Transparency = 0.85
+	boardEdge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	boardEdge.Parent = boardFrame
 	local cells = cellGrid(boardFrame, WIDTH, HEIGHT, CELL, 1)
+	for _, c in cells do
+		styleTile(c, 4)
+	end
 	local shown: { number } = table.create(WIDTH * HEIGHT, -1)
 	local wanted: { number } = table.create(WIDTH * HEIGHT, 0)
 
@@ -268,28 +312,40 @@ function PatongApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 		l.TextXAlignment = Enum.TextXAlignment.Left
 		return l
 	end
-	sideLabel("NextTitle", 0, "NEXT", 11).TextTransparency = 0.45
-	local preview = PhoneUi.frame("Next", side)
-	preview.Position = UDim2.fromOffset(0, 16)
-	preview.Size = UDim2.fromOffset(4 * PREVIEW_CELL, 2 * PREVIEW_CELL)
-	local previewCells: { Frame } = {}
-	for i = 1, 4 do
-		local c = PhoneUi.frame(`Cell{i}`, preview)
-		c.Size = UDim2.fromOffset(PREVIEW_CELL - 2, PREVIEW_CELL - 2)
-		c.BackgroundTransparency = 0
-		previewCells[i] = c
+	-- A small piece picture (next / held): 4 cells placed by drawPreview.
+	local function previewBox(name: string, y: number): { Frame }
+		sideLabel(`{name}Title`, y, string.upper(name), 11).TextTransparency = 0.45
+		local box = PhoneUi.frame(name, side)
+		box.Position = UDim2.fromOffset(0, y + 14)
+		box.Size = UDim2.fromOffset(4 * PREVIEW_CELL, 2 * PREVIEW_CELL)
+		local boxCells: { Frame } = {}
+		for i = 1, 4 do
+			local c = PhoneUi.frame(`Cell{i}`, box)
+			c.Size = UDim2.fromOffset(PREVIEW_CELL - 2, PREVIEW_CELL - 2)
+			c.BackgroundTransparency = 0
+			styleTile(c, 3)
+			local shine = c:FindFirstChild("Shine") :: GuiObject?
+			if shine then
+				shine.Visible = true
+			end
+			c.Visible = false
+			boxCells[i] = c
+		end
+		return boxCells
 	end
-	sideLabel("ScoreTitle", 54, "SCORE", 11).TextTransparency = 0.45
-	local scoreLabel = sideLabel("Score", 68, "0", 16)
-	sideLabel("RowsTitle", 92, "ROWS", 11).TextTransparency = 0.45
-	local rowsLabel = sideLabel("Rows", 106, "0", 16)
+	local nextCells = previewBox("Next", 0)
+	local holdCells = previewBox("Hold", 44)
+	sideLabel("ScoreTitle", 88, "SCORE", 11).TextTransparency = 0.45
+	local scoreLabel = sideLabel("Score", 101, "0", 14)
+	sideLabel("RowsTitle", 120, "ROWS", 11).TextTransparency = 0.45
+	local rowsLabel = sideLabel("Rows", 133, "0", 14)
 
 	local others = PhoneUi.frame("Others", side)
-	others.Position = UDim2.fromOffset(0, 136)
-	others.Size = UDim2.new(1, 0, 1, -136)
+	others.Position = UDim2.fromOffset(0, 154)
+	others.Size = UDim2.new(1, 0, 1, -154)
 	local othersLayout = Instance.new("UIListLayout")
 	othersLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	othersLayout.Padding = UDim.new(0, 6)
+	othersLayout.Padding = UDim.new(0, 3)
 	othersLayout.Parent = others
 
 	-- Message over the board: countdown, game over, winner.
@@ -345,7 +401,36 @@ function PatongApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 	end
 
 	-- Drawing ---------------------------------------------------------------------------------
-	local lastNext = 0
+	-- Centers a piece (0 = none) in a preview box. Faded when `dim`.
+	local function drawPreview(boxCells: { Frame }, piece: number, dim: boolean)
+		if piece == 0 then
+			for _, f in boxCells do
+				f.Visible = false
+			end
+			return
+		end
+		local shape = PatongGame.shapeCells(piece)
+		local minX, maxX, minY, maxY = math.huge, -math.huge, math.huge, -math.huge
+		for _, c in shape do
+			minX, maxX = math.min(minX, c[1]), math.max(maxX, c[1])
+			minY, maxY = math.min(minY, c[2]), math.max(maxY, c[2])
+		end
+		local offsetX = (4 - (maxX - minX + 1)) * PREVIEW_CELL / 2
+		local offsetY = (2 - (maxY - minY + 1)) * PREVIEW_CELL / 2
+		for i, c in shape do
+			local f = boxCells[i]
+			f.Visible = true
+			f.Position = UDim2.fromOffset(
+				offsetX + (c[1] - minX) * PREVIEW_CELL + 1,
+				offsetY + (c[2] - minY) * PREVIEW_CELL + 1
+			)
+			f.BackgroundColor3 = COLORS[piece]
+			f.BackgroundTransparency = if dim then 0.6 else 0
+		end
+	end
+
+	-- What the previews show now, so they're only redrawn when it changes.
+	local previewKey = ""
 	local function render()
 		local b = board
 		if not b then
@@ -375,24 +460,11 @@ function PatongApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 		rowsLabel.Text = tostring(b.lines)
 		garbageBar.Size = UDim2.fromOffset(4, math.min(b.pendingGarbage, HEIGHT) * CELL)
 
-		if b.nextPiece ~= lastNext then
-			lastNext = b.nextPiece
-			local shape = PatongGame.shapeCells(b.nextPiece)
-			local minX, maxX, minY, maxY = math.huge, -math.huge, math.huge, -math.huge
-			for _, c in shape do
-				minX, maxX = math.min(minX, c[1]), math.max(maxX, c[1])
-				minY, maxY = math.min(minY, c[2]), math.max(maxY, c[2])
-			end
-			local offsetX = (4 - (maxX - minX + 1)) * PREVIEW_CELL / 2
-			local offsetY = (2 - (maxY - minY + 1)) * PREVIEW_CELL / 2
-			for i, c in shape do
-				local f = previewCells[i]
-				f.Position = UDim2.fromOffset(
-					offsetX + (c[1] - minX) * PREVIEW_CELL + 1,
-					offsetY + (c[2] - minY) * PREVIEW_CELL + 1
-				)
-				f.BackgroundColor3 = COLORS[b.nextPiece]
-			end
+		local key = `{b.nextPiece},{b.held},{b.canHold}`
+		if key ~= previewKey then
+			previewKey = key
+			drawPreview(nextCells, b.nextPiece, false)
+			drawPreview(holdCells, b.held, not b.canHold)
 		end
 	end
 
@@ -418,12 +490,12 @@ function PatongApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 			end
 			local holder = PhoneUi.frame(tostring(member.UserId), others)
 			holder.LayoutOrder = order
-			holder.Size = UDim2.new(1, 0, 0, HEIGHT * MINI_CELL + 16)
+			holder.Size = UDim2.new(1, 0, 0, HEIGHT * MINI_CELL + 13)
 			local name = PhoneUi.label("Name", holder, member.Name, 11)
-			name.Size = UDim2.new(1, 0, 0, 14)
+			name.Size = UDim2.new(1, 0, 0, 12)
 			name.TextXAlignment = Enum.TextXAlignment.Left
 			local mini = PhoneUi.frame("Board", holder)
-			mini.Position = UDim2.fromOffset(0, 16)
+			mini.Position = UDim2.fromOffset(0, 13)
 			mini.Size = UDim2.fromOffset(WIDTH * MINI_CELL, HEIGHT * MINI_CELL)
 			mini.BackgroundTransparency = 0.35
 			mini.BackgroundColor3 = PhoneUi.INK
@@ -469,6 +541,8 @@ function PatongApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 			b:rotate(-1)
 		elseif control == "Drop" then
 			b:hardDrop()
+		elseif control == "Hold" then
+			b:hold()
 		end
 		render()
 	end
@@ -505,17 +579,17 @@ function PatongApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 	local controlsLayout = Instance.new("UIListLayout")
 	controlsLayout.FillDirection = Enum.FillDirection.Horizontal
 	controlsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	controlsLayout.Padding = UDim.new(0, 5)
+	controlsLayout.Padding = UDim.new(0, 4)
 	controlsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	controlsLayout.Parent = controls
 	for order, info in BUTTONS do
 		local b = PhoneUi.button(info.control, controls)
 		b.LayoutOrder = order
-		b.Size = UDim2.fromOffset(46, 52)
+		b.Size = UDim2.fromOffset(38, 52)
 		b.BackgroundColor3 = PhoneUi.WHITE
 		b.BackgroundTransparency = 0.86
 		b.Text = info.text
-		b.TextSize = if #info.text > 3 then 13 else 22
+		b.TextSize = if #info.text > 3 then 12 else 22
 		PhoneUi.corner(b, UDim.new(0, 14))
 		b.MouseButton1Down:Connect(function()
 			b.BackgroundTransparency = 0.7
@@ -599,7 +673,7 @@ function PatongApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 		local b = PatongGame.new(seed)
 		board = b
 		roundOver = false
-		lastNext = 0
+		previewKey = ""
 		table.clear(held)
 		table.clear(shown)
 		b.onLock = function(_cleared: number, attack: number)

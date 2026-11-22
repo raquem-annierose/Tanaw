@@ -62,6 +62,9 @@ type Fields = {
 	x: number,
 	y: number,
 	nextPiece: number,
+	-- The piece put aside with hold (0 = none), and whether hold can be used for this piece.
+	held: number,
+	canHold: boolean,
 	bag: { number },
 	rng: Random,
 	holeRng: Random,
@@ -96,6 +99,8 @@ function PatongGame.new(seed: number): PatongGame
 		x = 1,
 		y = 1,
 		nextPiece = 1,
+		held = 0,
+		canHold = true,
 		bag = {},
 		rng = Random.new(seed),
 		holeRng = Random.new(),
@@ -135,9 +140,9 @@ function PatongGame.fits(self: PatongGame, turn: number, x: number, y: number): 
 	return true
 end
 
-function PatongGame.spawn(self: PatongGame)
-	self.piece = self.nextPiece
-	self.nextPiece = self:draw()
+-- Puts `piece` at the top as the falling piece.
+function PatongGame.place(self: PatongGame, piece: number)
+	self.piece = piece
 	self.turn = 0
 	self.x = (WIDTH - SHAPES[self.piece].size) // 2 + 1
 	self.y = HIDDEN
@@ -147,6 +152,31 @@ function PatongGame.spawn(self: PatongGame)
 	if not self:fits(0, self.x, self.y) then
 		self.over = true
 	end
+end
+
+function PatongGame.spawn(self: PatongGame)
+	local piece = self.nextPiece
+	self.nextPiece = self:draw()
+	self:place(piece)
+end
+
+-- Hold: puts the falling piece aside and takes the held one (or the next one, the first time).
+-- Once per piece: it works again after the next piece locks.
+function PatongGame.hold(self: PatongGame): boolean
+	if self.over or not self.canHold then
+		return false
+	end
+	self.canHold = false
+	local current = self.piece
+	if self.held == 0 then
+		self.held = current
+		self:spawn()
+	else
+		local held = self.held
+		self.held = current
+		self:place(held)
+	end
+	return true
 end
 
 -- After a move or turn while resting on the stack, wait the full lock delay again (a few times).
@@ -279,6 +309,7 @@ function PatongGame.lock(self: PatongGame)
 	end
 
 	if not self.over then
+		self.canHold = true
 		self:spawn()
 	end
 	if self.onLock then
