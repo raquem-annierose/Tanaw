@@ -21,7 +21,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TextChatService = game:GetService("TextChatService")
 
-local CommunityRoles = require(script.Parent.CommunityRoles)
+local AdminAuth = require(script.Parent.AdminAuth)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
@@ -43,13 +43,6 @@ local function enabledHere(): boolean
 	end
 	-- A Studio playtest of a file that was never published has GameId 0.
 	return RunService:IsStudio() and game.GameId == 0
-end
-
-local function isAdmin(player: Player): boolean
-	if table.find(Config.Admin.UserIds, player.UserId) then
-		return true
-	end
-	return CommunityRoles.hasAny(player, Config.Admin.Roles)
 end
 
 local function notice(player: Player, text: string)
@@ -166,7 +159,7 @@ local function run(source: TextSource, text: string)
 end
 
 local function onPlayerAdded(player: Player)
-	admins[player] = isAdmin(player)
+	admins[player] = AdminAuth.canUseCommands(player)
 	player.CharacterAdded:Connect(function()
 		-- A new character starts without fly or noclip.
 		flying[player] = nil

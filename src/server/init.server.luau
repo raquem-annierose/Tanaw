@@ -4,6 +4,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local AdminPanelService = require(script.services.AdminPanelService)
 local AdminService = require(script.services.AdminService)
 local BadgeAwardService = require(script.services.BadgeAwardService)
 local CafeService = require(script.services.CafeService)
@@ -28,6 +29,7 @@ end)
 
 -- First: other services ask it whether a player has unlocked a feature.
 UnlockService.start()
+AdminPanelService.start()
 AdminService.start()
 BadgeAwardService.start()
 CafeService.start()

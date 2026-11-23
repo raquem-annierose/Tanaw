@@ -11,6 +11,14 @@ local FOLDER = "Remotes"
 -- Server -> admin's client: turn an admin effect on/off, or show a notice in chat.
 --   ("Fly", on: boolean) | ("Noclip", on: boolean) | ("Notice", text: string)
 local ADMIN = "Admin"
+-- Admin panel (RemoteFunction). Client -> server: (action: string, ...args) -> (ok, result).
+-- The server checks the caller's level for every action (see AdminPanelService).
+local ADMIN_PANEL = "AdminPanel"
+-- Announcements, countdowns and polls for everyone. Server -> all clients:
+--   ("Announce", text, author, seconds) | ("Countdown", "start", payload) | ("Countdown", "cancel")
+--   | ("Poll", "start" | "update" | "end", data)
+-- Client -> server: ("Vote", pollId: number, option: number)
+local LIVE_EVENTS = "LiveEvents"
 -- Café cashier. Client -> server: ("Accept") the player said yes to the order question.
 local CAFE = "Cafe"
 -- Phone. Client -> server: ("Selfie", on: boolean) hold up / put away the selfie stick.
@@ -59,6 +67,31 @@ local function event(name: string): RemoteEvent
 		return created
 	end
 	return parent:WaitForChild(name) :: RemoteEvent
+end
+
+local function func(name: string): RemoteFunction
+	local parent = folder()
+	if RunService:IsServer() then
+		local existing = parent:FindFirstChild(name)
+		if existing and existing:IsA("RemoteFunction") then
+			return existing
+		end
+		local created = Instance.new("RemoteFunction")
+		created.Name = name
+		created.Parent = parent
+		return created
+	end
+	return parent:WaitForChild(name) :: RemoteFunction
+end
+
+-- Both sides: the admin panel remote. On the client this waits until the server has made it.
+function Remotes.adminPanel(): RemoteFunction
+	return func(ADMIN_PANEL)
+end
+
+-- Both sides: announcements, countdowns and polls. On the client this waits for the server.
+function Remotes.liveEvents(): RemoteEvent
+	return event(LIVE_EVENTS)
 end
 
 -- Server: creates the admin remote. Only called where admin commands are on.

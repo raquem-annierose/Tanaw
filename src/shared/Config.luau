@@ -31,15 +31,50 @@ local Config = {
 	ChatTagOrder = { "Owner", "Developer", "Moderator" },
 
 	Admin = {
-		-- Community roles that get admin commands.
+		-- Community roles that get the chat commands (/fly, /tp...).
 		Roles = { "Owner", "Developer" },
-		-- Extra people by Roblox UserId (Profile URL: roblox.com/users/<UserId>/profile).
+		-- Extra people for the chat commands, by Roblox UserId
+		-- (Profile URL: roblox.com/users/<UserId>/profile).
 		UserIds = {} :: { number },
-		-- Admin commands only exist in these experiences (DEV, STAGING), never in PROD.
+		-- Chat commands only exist in these experiences (DEV, STAGING), never in PROD.
 		-- Studio playtests of an unpublished copy also count.
 		UniverseIds = { 10777857627, 10777857441 },
 		FlySpeed = 50,
 		MaxWalkSpeed = 100,
+		-- Admin panel (F2 / crown button): its level for each community role.
+		-- 1 = Moderator (kick, teleport, freeze), 2 = Admin (ban, announce, polls, name tags),
+		-- 3 = Owner (everything, shut down the server). Only the Owner for now; to let staff in
+		-- later, add e.g. `Moderator = 1`.
+		PanelLevels = { Owner = 3 } :: { [string]: number },
+		-- In a Studio playtest everyone gets the panel at level 3 (never on live servers).
+		PanelInStudio = true,
+	},
+
+	-- Admin panel settings (see AdminPanelService).
+	AdminPanel = {
+		ToggleKey = "F2",
+		-- Where the crown button sits in Roblox's top bar: "Left" or "Right".
+		TopbarAlign = "Left",
+		-- Show name tags (Roles page) above heads.
+		ShowRoleTags = true,
+		-- Name tags made the first time the panel runs (no powers, only a tag).
+		DefaultRoles = {
+			{ name = "Owner", icon = "👑", color = "FFC94D" },
+			{ name = "Admin", icon = "⚔️", color = "FF7A59" },
+			{ name = "Moderator", icon = "🛡️", color = "4FA3FF" },
+			{ name = "VIP", icon = "💎", color = "5EEAD4" },
+			{ name = "Helper", icon = "🌟", color = "C4B5FD" },
+		},
+		-- Countdown sounds: a tick each second for the last 10 seconds, then "go". "" = silent.
+		CountdownTickSound = "rbxasset://sounds/electronicpingshort.wav",
+		CountdownGoSound = "rbxasset://sounds/victory.wav",
+		-- DataStores. Changing a name starts that store empty.
+		BanStore = "AdminPanelBans_v1",
+		RoleStore = "AdminPanelRoles_v1",
+		PrefStore = "AdminPanelPrefs_v1",
+		LogStore = "AdminLog_v1",
+		-- Log lines kept in each server's memory (the saved log keeps 500 a day).
+		MaxLogs = 100,
 	},
 
 	SelfieStick = {

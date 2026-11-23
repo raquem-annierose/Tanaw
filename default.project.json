@@ -17,6 +17,11 @@
         "$path": "src/server"
       }
     },
+    "ServerStorage": {
+      "AdminPanelUi": {
+        "$path": "src/admin/AdminPanelUi.client.luau"
+      }
+    },
     "StarterGui": {
       "$properties": {
         "ScreenOrientation": "LandscapeSensor"
