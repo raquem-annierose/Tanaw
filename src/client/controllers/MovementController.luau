@@ -17,6 +17,13 @@ local STOP_THRESHOLD = 0.01
 
 local MovementController = {}
 
+-- While paused, this leaves the character alone (e.g. the photobooth walks it to a spot).
+local paused = false
+
+function MovementController.setPaused(on: boolean)
+	paused = on
+end
+
 function MovementController.start()
 	local player = Players.LocalPlayer
 
@@ -38,7 +45,7 @@ function MovementController.start()
 		BIND_NAME,
 		Enum.RenderPriority.Input.Value + 1,
 		function(deltaTime: number)
-			if not humanoid or humanoid.Health <= 0 or humanoid.Sit then
+			if paused or not humanoid or humanoid.Health <= 0 or humanoid.Sit then
 				smoothed = Vector3.zero
 				return
 			end

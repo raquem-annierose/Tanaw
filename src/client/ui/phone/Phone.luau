@@ -115,6 +115,8 @@ local FOLDER_OPEN_TIME = 0.22
 local Phone = {}
 
 local isOpen = false
+-- The phone's ScreenGui (button + phone). Set in Phone.start.
+local screenGui: ScreenGui? = nil
 local phoneFrame: Frame? = nil
 local pages: { [string]: Frame } = {}
 local currentPage = "Home"
@@ -242,6 +244,21 @@ function Phone.close()
 	refreshToggle()
 	refreshActiveApp()
 	slide(false)
+end
+
+-- Hides the phone and its button while something else owns the screen (e.g. the photobooth).
+function Phone.setHidden(hidden: boolean)
+	if hidden then
+		if CameraApp.isOpen() then
+			CameraApp.close()
+		end
+		if isOpen then
+			Phone.close()
+		end
+	end
+	if screenGui then
+		screenGui.Enabled = not hidden
+	end
 end
 
 function Phone.toggle()
@@ -795,6 +812,7 @@ function Phone.start()
 	watchLock()
 
 	gui.Parent = playerGui
+	screenGui = gui
 end
 
 return Phone

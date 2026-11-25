@@ -37,6 +37,12 @@ local TALON = "Talon"
 -- Freedom Wall. Client -> server: ("Post", text: string, anonymous: boolean).
 -- Server -> client: ("Open") the player clicked the QR sign | ("Posted") | ("Error", message: string)
 local FREEDOM_WALL = "FreedomWall"
+-- Mirror Photobooth (the booth model is always the first argument after the kind).
+-- Client -> server: ("Ready", booth) | ("Captured", booth) | ("Retake", booth) | ("Done", booth)
+--   | ("Leave", booth)
+-- Server -> client: ("Start", booth) | ("Countdown", booth, endsAt) | ("Preview", booth)
+--   | ("End", booth, reason: string) | ("Error", message: string)
+local PHOTOBOOTH = "Photobooth"
 
 local Remotes = {}
 
@@ -112,6 +118,11 @@ end
 -- Both sides: the Freedom Wall remote. On the client this waits until the server has made it.
 function Remotes.freedomWall(): RemoteEvent
 	return event(FREEDOM_WALL)
+end
+
+-- Both sides: the Mirror Photobooth remote. On the client this waits until the server has made it.
+function Remotes.photobooth(): RemoteEvent
+	return event(PHOTOBOOTH)
 end
 
 -- Both sides: the Patong remote. On the client this waits until the server has made it.
