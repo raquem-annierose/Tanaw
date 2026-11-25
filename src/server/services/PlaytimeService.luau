@@ -9,6 +9,9 @@
 -- "Rank" (1, 2 or 3). The avatar there changes when someone new reaches that rank, and dances
 -- (Config.Playtime.TopDances).
 --
+-- The experience owner (community owner, or the user for a user-owned place) still has their time
+-- saved but is left off the board and the Top 3 spots.
+--
 -- New time is only ever added (IncrementAsync) every SaveInterval seconds and when the player
 -- leaves, never overwritten, so two servers can't erase each other's time.
 --
@@ -17,6 +20,7 @@
 
 local CollectionService = game:GetService("CollectionService")
 local DataStoreService = game:GetService("DataStoreService")
+local GroupService = game:GetService("GroupService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserService = game:GetService("UserService")
@@ -57,6 +61,24 @@ local podiums: { [BasePart]: Podium } = {}
 -- Display names by UserId, so the board doesn't look them up every refresh.
 local names: { [number]: string } = {}
 local top: { Entry }? = nil
+-- The owner's UserId, left off the ranking. nil until looked up (retried each refresh).
+local ownerId: number? = nil
+
+local function lookUpOwner()
+	if ownerId then
+		return
+	end
+	if game.CreatorType == Enum.CreatorType.User then
+		ownerId = game.CreatorId
+		return
+	end
+	local ok, info = pcall(function()
+		return GroupService:GetGroupInfoAsync(Config.CommunityId)
+	end)
+	if ok and type(info) == "table" and type(info.Owner) == "table" then
+		ownerId = tonumber(info.Owner.Id)
+	end
+end
 
 local function formatTime(seconds: number): string
 	local minutes = seconds // 60
@@ -352,11 +374,16 @@ local function refresh()
 	local s = store
 	local entries: { Entry }? = nil
 	if s then
+		lookUpOwner()
 		local ok, result = pcall(function()
-			local pages = s:GetSortedAsync(false, Settings.TopCount)
+			-- One extra, in case the owner is in the top and gets skipped.
+			local pages = s:GetSortedAsync(false, Settings.TopCount + 1)
 			local list: { Entry } = {}
 			for _, item in pages:GetCurrentPage() do
-				table.insert(list, { userId = tonumber(item.key) or 0, seconds = item.value })
+				local userId = tonumber(item.key) or 0
+				if userId ~= ownerId and #list < Settings.TopCount then
+					table.insert(list, { userId = userId, seconds = item.value })
+				end
 			end
 			return list
 		end)
