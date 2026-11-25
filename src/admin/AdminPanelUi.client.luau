@@ -15,7 +15,7 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
-local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Remotes = require(ReplicatedStorage.Shared.core.Remotes)
 
 local player = Players.LocalPlayer
 local remote = Remotes.adminPanel()

@@ -17,17 +17,18 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
-local CameraApp = require(script.Parent.CameraApp)
-local EmotesApp = require(script.Parent.EmotesApp)
+local CameraApp = require(script.Parent.apps.CameraApp)
+local EmotesApp = require(script.Parent.apps.EmotesApp)
 local LockedOverlay = require(script.Parent.LockedOverlay)
-local MusicApp = require(script.Parent.MusicApp)
-local NotesApp = require(script.Parent.NotesApp)
-local PatongApp = require(script.Parent.PatongApp)
+local MusicApp = require(script.Parent.apps.MusicApp)
+local NotesApp = require(script.Parent.apps.NotesApp)
+local PatongApp = require(script.Parent.apps.PatongApp)
 local PhoneUi = require(script.Parent.PhoneUi)
-local PhotoboothApp = require(script.Parent.PhotoboothApp)
-local TalonApp = require(script.Parent.TalonApp)
-local UnlockController = require(script.Parent.Parent.Parent.controllers.UnlockController)
-local Unlocks = require(game:GetService("ReplicatedStorage").Shared.Unlocks)
+local PhotoboothApp = require(script.Parent.apps.PhotoboothApp)
+local TalonApp = require(script.Parent.apps.TalonApp)
+local UnlockController =
+	require(script.Parent.Parent.Parent.controllers.progression.UnlockController)
+local Unlocks = require(game:GetService("ReplicatedStorage").Shared.progression.Unlocks)
 
 -- Feature (shared Unlocks) the Games folder needs.
 local GAMES_FEATURE = "Games"

@@ -4,9 +4,9 @@ How we write "objects" in Tanaw: when to use a class, how to write one in `--!st
 
 ## Quick answers
 
-**May classes ba sa Luau?** No `class` keyword. You build classes from a table plus a **metatable**. It works the same way in practice: `Thing.new()` makes an object, `thing:doSomething()` calls a method.
+**Does Luau have classes?** There is no `class` keyword. You build classes from a table plus a **metatable**. It works the same way in practice: `Thing.new()` makes an object, `thing:doSomething()` calls a method.
 
-**Kailangan ba lahat OOP?** No. Use a class only when the game has **many of the same thing**. If there is only **one** of something, a plain module is simpler.
+**Does everything need to be OOP?** No. Use a class only when the game has **many of the same thing**. If there is only **one** of something, a plain module is simpler.
 
 | There is…                               | Use                  | Tanaw examples                                           |
 | --------------------------------------- | -------------------- | -------------------------------------------------------- |
@@ -167,21 +167,66 @@ If two classes share code, move it into a small helper module both can `require`
 - Want both sides to know an object's state? Put it on the **Instance** as an **attribute** (`seat:SetAttribute("Pose", "CrossLegs")`). Clients read it with `GetAttributeChangedSignal`. `SitPoseController` already works this way.
 - Server objects make decisions (who sits, what's saved). Client objects only show things (camera, UI, effects).
 
-## Where class files go
+## Where files go
+
+Files are grouped by **feature category**, with the same folder name on every side (like AccrediTrack's `controllers/<feature>` and `services/<feature>`). Everything for the photobooth is in a `photobooth/` folder: client, server and shared.
 
 ```
 src/
 ├─ server/
-│  ├─ services/        # singletons: SitService, RadioService
-│  └─ classes/         # server-only classes: PoseSeat, Stall
+│  ├─ init.server.luau            # requires and starts every service
+│  └─ services/
+│     ├─ admin/                   # AdminAuth, AdminService, AdminPanelService
+│     ├─ community/               # CommunityRoles, ChatTagService, BadgeAwardService
+│     ├─ freedomwall/             # FreedomWallService
+│     ├─ games/                   # PatongService, TalonService, TableGameService, QuestionBallService
+│     │  └─ tablegames/           # GameTable class + one module per table game
+│     ├─ hangout/                 # CafeService, SitService, NpcService, SelfieStickService
+│     ├─ music/                   # RadioService, MicService
+│     ├─ photobooth/              # PhotoboothService
+│     └─ progression/             # PlaytimeService, UnlockService
 ├─ client/
-│  ├─ controllers/     # singletons
-│  └─ classes/         # client-only classes: e.g. a UI card
-└─ shared/
-   └─ classes/         # used by both sides (rare)
+│  ├─ init.client.luau            # requires and starts every controller
+│  ├─ controllers/
+│  │  ├─ admin/  community/  games/  hangout/  music/
+│  │  ├─ photobooth/              # PhotoboothController, PhotoboothDisplay, PhotoboothMirror
+│  │  ├─ player/                  # MovementController, ShiftLockController, SpawnViewController
+│  │  ├─ progression/             # UnlockController
+│  │  └─ world/                   # LiveEvents, Searchlight, TimeOfDay controllers
+│  └─ ui/
+│     ├─ hud/                     # ShiftLockButton, TimeOfDayMenu, TableGameUi
+│     └─ phone/                   # Phone, PhoneUi, LockedOverlay, QrScanner, PhotoAlbum
+│        └─ apps/                 # CameraApp, MusicApp, PhotoboothApp, TalonApp, ...
+└─ shared/                        # → ReplicatedStorage.Shared
+   ├─ core/                       # Config, Remotes, QrCode (used by many features)
+   ├─ games/  hangout/  music/  world/  progression/
+   ├─ photobooth/                 # Photobooth (settings, states, texts)
+   └─ freedomwall/                # FreedomWall
 ```
 
-One class per file, and the file name matches the class name (`PoseSeat.luau` → `PoseSeat`).
+Rules:
+
+- **Singletons** (services, controllers) go in their category folder: `server/services/<category>/`, `client/controllers/<category>/`.
+- **Classes** go in the category folder of the feature that uses them, next to the service that owns them. Example: `GameTable` (one object per table) sits in `server/services/games/tablegames/`, used by `TableGameService`. A class used by both sides goes in `shared/<category>/`.
+- A new feature gets the **same folder name** on every side it needs (`client/controllers/<name>/`, `server/services/<name>/`, `shared/<name>/`). Something many features use goes in `shared/core/`.
+- One module per file, and the file name matches the module (`PoseSeat.luau` → `PoseSeat`).
+- Folder names are lowercase; module names are PascalCase.
+
+Requiring across folders:
+
+```lua
+-- shared modules: always from ReplicatedStorage
+local Photobooth = require(ReplicatedStorage.Shared.photobooth.Photobooth)
+local Remotes = require(ReplicatedStorage.Shared.core.Remotes)
+
+-- same folder
+local AdminAuth = require(script.Parent.AdminAuth)
+
+-- another category on the same side: up to services/, then down
+local NpcService = require(script.Parent.Parent.hangout.NpcService)
+```
+
+When a file moves, its `script.Parent` paths change. Run `npm run check`: the Luau type check resolves every require through the Rojo sourcemap and fails on a broken path.
 
 ## Checklist before committing a class
 

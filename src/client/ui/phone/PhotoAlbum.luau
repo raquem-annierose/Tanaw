@@ -5,7 +5,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Photobooth = require(ReplicatedStorage.Shared.Photobooth)
+local Photobooth = require(ReplicatedStorage.Shared.photobooth.Photobooth)
 
 export type Photo = {
 	-- The real screenshot (ScreenshotCapture), if Roblox could take one. Shown with

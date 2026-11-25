@@ -9,7 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local PhoneUi = require(script.Parent.PhoneUi)
-local QrCode = require(ReplicatedStorage.Shared.QrCode)
+local QrCode = require(ReplicatedStorage.Shared.core.QrCode)
 
 local BOX = 176
 local BOX_Y = 0.46

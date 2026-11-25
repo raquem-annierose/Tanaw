@@ -67,21 +67,27 @@ tanaw/
 ├─ stylua.toml / selene.toml
 ├─ src/
 │  ├─ client/                # → StarterPlayerScripts
-│  │  ├─ init.client.luau
-│  │  ├─ ui/                 # StickerEditor, MatchPrompt, CafeMenu
-│  │  └─ controllers/        # CameraController, SitController
+│  │  ├─ init.client.luau    # starts every controller
+│  │  ├─ controllers/<category>/   # e.g. photobooth/PhotoboothController.luau
+│  │  └─ ui/
+│  │     ├─ hud/             # on-screen buttons and menus
+│  │     └─ phone/           # Phone, PhoneUi, shared phone parts
+│  │        └─ apps/         # one file per phone app
 │  ├─ server/                # → ServerScriptService
-│  │  ├─ init.server.luau
-│  │  └─ services/           # MatchService, StickerService, DataService
-│  └─ shared/                # → ReplicatedStorage
-│     ├─ Remotes.luau        # ALL RemoteEvents defined in one place
-│     ├─ Config.luau         # prices, prompts, colors
-│     └─ Types.luau
+│  │  ├─ init.server.luau    # starts every service
+│  │  └─ services/<category>/      # e.g. photobooth/PhotoboothService.luau
+│  ├─ shared/                # → ReplicatedStorage.Shared
+│  │  ├─ core/               # Config, Remotes (ALL RemoteEvents), QrCode
+│  │  └─ <category>/         # settings + types for one feature
+│  ├─ first/                 # → ReplicatedFirst (loading screen)
+│  └─ admin/                 # → ServerStorage (admin panel UI, Owner only)
 ├─ assets/                   # exported models (.rbxm) e.g. Cafe.rbxm
 └─ docs/                     # plans, specs, tickets (already here)
 ```
 
-**Feature = one folder per side.** Example: Sticker feature → `client/ui/StickerEditor.luau` + `server/services/StickerService.luau` + entries in `shared/Remotes.luau`. One person owns one feature at a time = almost no conflicts.
+**Feature = one category folder per side, same name on every side.** Categories: `admin`, `community`, `freedomwall`, `games`, `hangout`, `music`, `photobooth`, `player` (client only), `progression`, `world`. Example, the photobooth: `client/controllers/photobooth/` + `server/services/photobooth/` + `shared/photobooth/` + its app in `client/ui/phone/apps/` + entries in `shared/core/Remotes.luau`. To find everything for a feature, search for its folder name. One person owns one feature at a time = almost no conflicts.
+
+New file? Put it in the category it belongs to; make a new category folder only for a new feature, and use the same folder name on the client, server and shared side.
 
 ## Collab rules
 

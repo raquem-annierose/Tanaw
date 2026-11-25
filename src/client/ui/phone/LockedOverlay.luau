@@ -6,8 +6,9 @@
 --   LockedOverlay.attach(page, "Games")
 
 local PhoneUi = require(script.Parent.PhoneUi)
-local UnlockController = require(script.Parent.Parent.Parent.controllers.UnlockController)
-local Unlocks = require(game:GetService("ReplicatedStorage").Shared.Unlocks)
+local UnlockController =
+	require(script.Parent.Parent.Parent.controllers.progression.UnlockController)
+local Unlocks = require(game:GetService("ReplicatedStorage").Shared.progression.Unlocks)
 
 local HEADER = 44
 -- Under the QR scanner (20) so a scan plays first, above the page's own content.
