@@ -8,8 +8,8 @@ local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
-local FreedomWall = require(ReplicatedStorage.Shared.FreedomWall)
 local PhoneUi = require(script.Parent.PhoneUi)
+local QrCode = require(ReplicatedStorage.Shared.QrCode)
 
 local BOX = 176
 local BOX_Y = 0.46
@@ -17,15 +17,27 @@ local CELL = 6
 local BRACKET = 30
 local BRACKET_WIDTH = 4
 local GREEN = Color3.fromRGB(90, 220, 120)
-local WOOD = Color3.fromRGB(92, 62, 40)
-local CARD = Color3.fromRGB(255, 250, 244)
 local QR_INK = Color3.fromRGB(28, 24, 30)
 
 local QrScanner = {}
 
+-- What the scanned sign looks like. pattern can be changed later with setPattern (e.g. one QR
+-- per photo).
+export type Options = {
+	title: string,
+	subtitle: string,
+	pattern: QrCode.Pattern,
+	frameColor: Color3,
+	cardColor: Color3,
+	titleColor: Color3,
+	subtitleColor: Color3,
+	doneText: string?,
+}
+
 export type Scanner = {
 	-- startDelay: seconds to hold the camera view before aiming (e.g. while the phone slides in).
 	play: (onDone: () -> (), startDelay: number?) -> (),
+	setPattern: (pattern: QrCode.Pattern) -> (),
 }
 
 local function tween(
@@ -43,16 +55,17 @@ local function tween(
 	return t
 end
 
--- The QR sign as seen through the camera: wood frame, white card, the same QR as the sign.
-local function buildSign(parent: Frame): (Frame, Frame)
-	local qrPixels = FreedomWall.QrSize * CELL
+-- The QR sign as seen through the camera: frame, card, the same QR as the real sign. Returns the
+-- sign, its focus haze and the QR frame (to redraw the code).
+local function buildSign(parent: Frame, options: Options): (Frame, Frame, Frame)
+	local qrPixels = #options.pattern * CELL
 	local width = qrPixels + 32
 	local height = qrPixels + 76
 
 	local sign = PhoneUi.frame("Sign", parent)
 	sign.Size = UDim2.fromOffset(width, height)
 	sign.BackgroundTransparency = 0
-	sign.BackgroundColor3 = WOOD
+	sign.BackgroundColor3 = options.frameColor
 	PhoneUi.corner(sign, UDim.new(0, 8))
 	-- Anchor on the QR's centre so the QR lines up with the scan box.
 	sign.AnchorPoint = Vector2.new(0.5, (30 + qrPixels / 2) / height)
@@ -61,11 +74,11 @@ local function buildSign(parent: Frame): (Frame, Frame)
 	card.Position = UDim2.fromOffset(6, 6)
 	card.Size = UDim2.new(1, -12, 1, -12)
 	card.BackgroundTransparency = 0
-	card.BackgroundColor3 = CARD
+	card.BackgroundColor3 = options.cardColor
 	PhoneUi.corner(card, UDim.new(0, 6))
 
-	local title = PhoneUi.label("Title", card, "SCAN MO AKO 📱", 13)
-	title.TextColor3 = Color3.fromRGB(45, 32, 26)
+	local title = PhoneUi.label("Title", card, options.title, 13)
+	title.TextColor3 = options.titleColor
 	title.Position = UDim2.fromOffset(0, 4)
 	title.Size = UDim2.new(1, 0, 0, 18)
 
@@ -75,21 +88,11 @@ local function buildSign(parent: Frame): (Frame, Frame)
 	qr.Size = UDim2.fromOffset(qrPixels, qrPixels)
 	qr.BackgroundTransparency = 0
 	qr.BackgroundColor3 = PhoneUi.WHITE
-	for i, row in FreedomWall.qrPattern() do
-		for j, dark in row do
-			if dark then
-				local px = PhoneUi.frame("Px", qr)
-				px.BackgroundTransparency = 0
-				px.BackgroundColor3 = QR_INK
-				px.Position = UDim2.fromOffset((j - 1) * CELL, (i - 1) * CELL)
-				px.Size = UDim2.fromOffset(CELL, CELL)
-			end
-		end
-	end
+	QrCode.render(qr, options.pattern, QR_INK)
 
-	local sub = PhoneUi.label("Sub", card, "Freedom Wall", 12)
+	local sub = PhoneUi.label("Sub", card, options.subtitle, 12)
 	sub.FontFace = PhoneUi.FONT_REGULAR
-	sub.TextColor3 = Color3.fromRGB(150, 105, 70)
+	sub.TextColor3 = options.subtitleColor
 	sub.AnchorPoint = Vector2.new(0, 1)
 	sub.Position = UDim2.new(0, 0, 1, -8)
 	sub.Size = UDim2.new(1, 0, 0, 16)
@@ -101,7 +104,7 @@ local function buildSign(parent: Frame): (Frame, Frame)
 	blur.BackgroundColor3 = Color3.fromRGB(70, 56, 48)
 	blur.ZIndex = 2
 	PhoneUi.corner(blur, UDim.new(0, 8))
-	return sign, blur
+	return sign, blur, qr
 end
 
 local function bracketPiece(parent: Frame, anchor: Vector2, size: Vector2): Frame
@@ -115,7 +118,7 @@ local function bracketPiece(parent: Frame, anchor: Vector2, size: Vector2): Fram
 	return f
 end
 
-function QrScanner.build(page: Frame): Scanner
+function QrScanner.build(page: Frame, options: Options): Scanner
 	local overlay = PhoneUi.frame("Scanner", page)
 	overlay.Size = UDim2.fromScale(1, 1)
 	overlay.BackgroundTransparency = 0
@@ -130,7 +133,7 @@ function QrScanner.build(page: Frame): Scanner
 	feed.Color = ColorSequence.new(Color3.fromRGB(132, 100, 84), Color3.fromRGB(46, 36, 40))
 	feed.Parent = overlay
 
-	local sign, blur = buildSign(overlay)
+	local sign, blur, qr = buildSign(overlay, options)
 	local signScale = Instance.new("UIScale")
 	signScale.Parent = sign
 
@@ -204,7 +207,7 @@ function QrScanner.build(page: Frame): Scanner
 		overlay.Position = UDim2.fromScale(0, 0)
 		overlay.Visible = true
 		flash.BackgroundTransparency = 1
-		hint.Text = "I-tutok ang camera sa QR code"
+		hint.Text = "Point the camera at the QR code"
 		hint.TextColor3 = PhoneUi.WHITE
 		for _, b in brackets do
 			b.BackgroundColor3 = PhoneUi.WHITE
@@ -261,7 +264,7 @@ function QrScanner.build(page: Frame): Scanner
 			for _, b in brackets do
 				b.BackgroundColor3 = GREEN
 			end
-			hint.Text = "Na-scan! ✓"
+			hint.Text = options.doneText or "Scanned!"
 			hint.TextColor3 = GREEN
 			boxScale.Scale = 1.1
 			tween(boxScale, 0.2, Enum.EasingStyle.Back, { Scale = 1 })
@@ -283,7 +286,15 @@ function QrScanner.build(page: Frame): Scanner
 		end)
 	end
 
-	return { play = play }
+	local function setPattern(pattern: QrCode.Pattern)
+		local old = qr:FindFirstChild("QrCells")
+		if old then
+			old:Destroy()
+		end
+		QrCode.render(qr, pattern, QR_INK)
+	end
+
+	return { play = play, setPattern = setPattern }
 end
 
 return QrScanner

@@ -85,7 +85,7 @@ local function buildBoard(wall: BasePart)
 
 	local hint = label(
 		board,
-		"I-scan ang QR para mag-iwan ng note ✍️",
+		"Scan the QR code to leave a note",
 		FONT_REGULAR,
 		Color3.fromRGB(255, 236, 214)
 	)
@@ -108,8 +108,7 @@ local function buildBoard(wall: BasePart)
 	grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	grid.Parent = area
 
-	local empty =
-		label(board, "Wala pang notes. Ikaw na mauna! 💌", FONT, Color3.fromRGB(255, 240, 220))
+	local empty = label(board, "No notes yet. Be the first!", FONT, Color3.fromRGB(255, 240, 220))
 	empty.Name = "Empty"
 	empty.Position = UDim2.fromOffset(14, HEADER)
 	empty.Size = UDim2.new(1, -28, 0.4, 0)
@@ -273,31 +272,27 @@ function FreedomWallService.start()
 				remote:FireClient(
 					player,
 					"Error",
-					`Sandali lang, pwede ulit mag-post in {math.ceil(remaining)}s.`
+					`Please wait. You can post again in {math.ceil(remaining)}s.`
 				)
 				return
 			end
 			local trimmed = string.gsub(string.gsub(text, "%s+", " "), "^%s*(.-)%s*$", "%1")
 			if trimmed == "" then
-				remote:FireClient(player, "Error", "Walang laman ang note.")
+				remote:FireClient(player, "Error", "Your note is empty.")
 				return
 			end
 			if
 				utf8.len(trimmed) == nil
 				or (utf8.len(trimmed) :: number) > FreedomWall.MaxLength
 			then
-				remote:FireClient(
-					player,
-					"Error",
-					`Hanggang {FreedomWall.MaxLength} characters lang.`
-				)
+				remote:FireClient(player, "Error", `Max {FreedomWall.MaxLength} characters.`)
 				return
 			end
 			lastPost[player] = now
 			local filtered = filter(player, trimmed)
 			if not filtered then
 				lastPost[player] = nil
-				remote:FireClient(player, "Error", "Hindi ma-post ngayon. Subukan ulit mamaya.")
+				remote:FireClient(player, "Error", "Couldn't post right now. Try again later.")
 				return
 			end
 			addNote(player, filtered, anonymous == true)

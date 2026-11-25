@@ -121,7 +121,7 @@ function TalonApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 	local menuTitle = PhoneUi.label("Title", menu, "Talon", 44)
 	menuTitle.Position = UDim2.fromOffset(0, 70)
 	menuTitle.Size = UDim2.new(1, 0, 0, 50)
-	local menuSub = PhoneUi.label("Sub", menu, "Isang pindot lang: talon!", 15)
+	local menuSub = PhoneUi.label("Sub", menu, "One button: jump!", 15)
 	menuSub.FontFace = PhoneUi.FONT_REGULAR
 	menuSub.Position = UDim2.fromOffset(0, 120)
 	menuSub.Size = UDim2.new(1, 0, 0, 20)
@@ -137,7 +137,7 @@ function TalonApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 	local raceNote = PhoneUi.label(
 		"Note",
 		menu,
-		`Race: paunahan sa finish line ({Talon.RaceMeters} m). Pag natamaan, balik sa simula!`,
+		`Race: first to the finish line ({Talon.RaceMeters} m) wins. Get hit and you go back to the start.`,
 		13
 	)
 	raceNote.FontFace = PhoneUi.FONT_REGULAR
@@ -316,7 +316,7 @@ function TalonApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 	jumpButton.Size = UDim2.fromOffset(VIEW_W, 64)
 	jumpButton.BackgroundColor3 = PhoneUi.WHITE
 	jumpButton.BackgroundTransparency = 0.85
-	jumpButton.Text = "TALON!"
+	jumpButton.Text = "JUMP!"
 	jumpButton.TextSize = 22
 	PhoneUi.corner(jumpButton, UDim.new(0, 16))
 
@@ -511,7 +511,12 @@ function TalonApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 		resetRun()
 		state = "Ready"
 		render(0)
-		showCard("Talon", "Tumalon sa mga tinik at blocks. Gaano ka kalayo?", "Simula", startSingle)
+		showCard(
+			"Talon",
+			"Jump over the spikes and blocks. How far can you go?",
+			"Start",
+			startSingle
+		)
 	end
 
 	-- Screens ------------------------------------------------------------------------------
@@ -646,7 +651,7 @@ function TalonApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 		end
 
 		showScreen("Play")
-		showCard("3", "Paunahan sa finish line!", nil, nil)
+		showCard("3", "First to the finish line wins!", nil, nil)
 		render(0)
 		bringUp()
 	end
@@ -655,14 +660,14 @@ function TalonApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 		state = "Finished"
 		TalonController.sendProgress(finishX)
 		TalonController.sendFinish()
-		showCard("🏁 Tapos!", "Sandali, tinitingnan kung sino ang nauna…", nil, nil)
+		showCard("Finished!", "Checking who got there first…", nil, nil)
 	end
 
 	local function raceHit()
 		state = "Respawn"
 		respawnAt = os.clock() + RESPAWN_DELAY
 		flash.BackgroundTransparency = 0.35
-		showToast("Balik sa simula! 💥", 1.2)
+		showToast("Back to the start!", 1.2)
 	end
 
 	-- Game loop ------------------------------------------------------------------------------
@@ -702,7 +707,7 @@ function TalonApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 			else
 				state = "Playing"
 				hideCard()
-				showToast("TALON! 🏃", 0.8)
+				showToast("GO!", 0.8)
 			end
 		elseif state == "Respawn" and os.clock() >= respawnAt then
 			resetRun()
@@ -768,9 +773,9 @@ function TalonApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 				bestLabel.Text = `Best {best} m`
 				flash.BackgroundTransparency = 0.35
 				showCard(
-					if isBest then "Bagong best! 🎉" else "Ay! 💥",
-					`Umabot ka ng {meters} m.`,
-					"Ulit",
+					if isBest then "New best!" else "Ouch!",
+					`You made it {meters} m.`,
+					"Again",
 					startSingle
 				)
 			else
@@ -851,12 +856,12 @@ function TalonApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 		end
 		if not room then
 			inLobby(function(parent)
-				local b = wideButton("Host", parent, "Mag-host ng race", true)
+				local b = wideButton("Host", parent, "Host a race", true)
 				b.Activated:Connect(TalonController.host)
 				return b
 			end, nextOrder())
 			inLobby(function(parent)
-				return text("Heading", parent, "MGA ROOM MALAPIT SA'YO", 12)
+				return text("Heading", parent, "ROOMS NEAR YOU", 12)
 			end, nextOrder())
 			local nearby = TalonController.getNearby()
 			if #nearby == 0 then
@@ -864,15 +869,15 @@ function TalonApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 					return text(
 						"Empty",
 						parent,
-						`Wala pa. Lumapit ({Talon.JoinDistance} studs) sa kaibigang nagho-host.`,
+						`No rooms yet. Get within {Talon.JoinDistance} studs of a friend who is hosting.`,
 						14
 					)
 				end, nextOrder())
 			end
 			for _, info in nearby do
 				local status = if info.Playing
-					then "Naglalaro"
-					elseif info.Count >= Talon.MaxPlayers then "Puno"
+					then "Playing"
+					elseif info.Count >= Talon.MaxPlayers then "Full"
 					else nil
 				local r = row(
 					tostring(info.HostId),
@@ -903,13 +908,13 @@ function TalonApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 				row(
 					tostring(member.UserId),
 					nextOrder(),
-					if member.UserId == me.UserId then `{member.Name} (ikaw)` else member.Name,
+					if member.UserId == me.UserId then `{member.Name} (you)` else member.Name,
 					if member.UserId == room.HostId then "Host" else nil
 				)
 			end
 			if room.Playing then
 				inLobby(function(parent)
-					return text("Status", parent, "May race na nagaganap.", 14)
+					return text("Status", parent, "A race is in progress.", 14)
 				end, nextOrder())
 			elseif room.HostId == me.UserId then
 				local ready = #room.Members >= 2
@@ -917,7 +922,7 @@ function TalonApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 					local b = wideButton(
 						"Start",
 						parent,
-						if ready then "Simulan ang race" else "Hinihintay ang players…",
+						if ready then "Start the race" else "Waiting for players…",
 						ready
 					)
 					b.Activated:Connect(function()
@@ -929,11 +934,11 @@ function TalonApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 				end, nextOrder())
 			else
 				inLobby(function(parent)
-					return text("Status", parent, "Hinihintay ang host na mag-start.", 14)
+					return text("Status", parent, "Waiting for the host to start.", 14)
 				end, nextOrder())
 			end
 			inLobby(function(parent)
-				local b = wideButton("Leave", parent, "Umalis sa room", false)
+				local b = wideButton("Leave", parent, "Leave room", false)
 				b.Activated:Connect(TalonController.leave)
 				return b
 			end, nextOrder())
@@ -1006,15 +1011,12 @@ function TalonApp.build(page: Frame, goHome: () -> (), bringUp: () -> ())
 		elseif kind == "Winner" and mode == "Race" then
 			state = "Over"
 			local won = a == me.UserId
-			local title = if won
-				then "🏆 Panalo ka!"
-				elseif a == 0 then "Walang nanalo"
-				else "🏁 Tapos na!"
+			local title = if won then "You win!" elseif a == 0 then "No winner" else "Finished!"
 			local body = if won
-				then "Ikaw ang unang nakarating sa finish line!"
-				elseif a == 0 then "Naubos ang oras ng race."
-				else `Nauna si {b} sa finish line.`
-			showCard(title, body, "Bumalik sa room", backToRoom)
+				then "You reached the finish line first!"
+				elseif a == 0 then "The race ran out of time."
+				else `{b} reached the finish line first.`
+			showCard(title, body, "Back to room", backToRoom)
 		end
 	end)
 

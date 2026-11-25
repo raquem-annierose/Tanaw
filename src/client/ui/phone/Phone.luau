@@ -8,6 +8,8 @@
 -- Games folder (tap to open, tap outside to close):
 --   Patong  - falling-block game, alone or versus nearby players (PatongApp)
 --   Talon   - one-button runner (TalonApp)
+-- Photobooth (PhotoboothApp): home screen icon next to Games; also opens when the player scans
+--   their photo's QR on the Mirror Photobooth.
 -- Notes (Freedom Wall, NotesApp) is not on the home screen: it opens when the player clicks the QR sign.
 -- The white bar at the bottom goes back home; the phone button closes the phone.
 
@@ -22,6 +24,7 @@ local MusicApp = require(script.Parent.MusicApp)
 local NotesApp = require(script.Parent.NotesApp)
 local PatongApp = require(script.Parent.PatongApp)
 local PhoneUi = require(script.Parent.PhoneUi)
+local PhotoboothApp = require(script.Parent.PhotoboothApp)
 local TalonApp = require(script.Parent.TalonApp)
 local UnlockController = require(script.Parent.Parent.Parent.controllers.UnlockController)
 local Unlocks = require(game:GetService("ReplicatedStorage").Shared.Unlocks)
@@ -107,6 +110,15 @@ local GAMES: { AppInfo } = {
 		Bottom = Color3.fromRGB(226, 96, 140),
 	},
 }
+-- Home screen apps (next to the Games folder).
+local PHOTOBOOTH_APP: AppInfo = {
+	Id = "Photobooth",
+	Label = "Photobooth",
+	-- Drawn photo strip (see drawPhotoStrip), like the strip a real booth prints.
+	Icon = "",
+	Top = Color3.fromRGB(70, 44, 110),
+	Bottom = Color3.fromRGB(34, 20, 58),
+}
 -- Dock icon size and spacing: up to four icons fit the dock.
 local ICON_SIZE = 54
 local ICON_GAP = 6
@@ -178,6 +190,53 @@ local function drawCamera(icon: GuiObject)
 	flashDot.BackgroundTransparency = 0
 	flashDot.BackgroundColor3 = PhoneUi.ACCENT
 	PhoneUi.corner(flashDot)
+end
+
+-- Photobooth glyph: a white photo strip with three shots, tilted like it just came out of the
+-- booth, with a second strip peeking out behind it.
+local function drawPhotoStrip(icon: GuiObject)
+	local function strip(name: string, x: number, rotation: number, transparency: number): Frame
+		local s = PhoneUi.frame(name, icon)
+		s.AnchorPoint = Vector2.new(0.5, 0.5)
+		s.Position = UDim2.new(0.5, x, 0.5, 1)
+		s.Size = UDim2.fromOffset(20, 40)
+		s.Rotation = rotation
+		s.BackgroundTransparency = transparency
+		s.BackgroundColor3 = Color3.fromRGB(250, 246, 240)
+		PhoneUi.corner(s, UDim.new(0, 2))
+		return s
+	end
+	local back = strip("BackStrip", 7, 12, 0.45)
+	back.BackgroundColor3 = Color3.fromRGB(255, 170, 220)
+	local front = strip("Strip", -4, -8, 0)
+	local shots = {
+		Color3.fromRGB(255, 150, 200),
+		Color3.fromRGB(190, 140, 255),
+		Color3.fromRGB(255, 196, 140),
+	}
+	for i, color in shots do
+		local shot = PhoneUi.frame(`Shot{i}`, front)
+		shot.Position = UDim2.fromOffset(3, 3 + (i - 1) * 11)
+		shot.Size = UDim2.fromOffset(14, 9)
+		shot.BackgroundTransparency = 0
+		shot.BackgroundColor3 = color
+		PhoneUi.corner(shot, UDim.new(0, 1))
+		-- A tiny head-and-shoulders in each shot.
+		local head = PhoneUi.frame("Head", shot)
+		head.AnchorPoint = Vector2.new(0.5, 1)
+		head.Position = UDim2.new(0.5, 0, 1, -3)
+		head.Size = UDim2.fromOffset(4, 4)
+		head.BackgroundTransparency = 0
+		head.BackgroundColor3 = Color3.fromRGB(60, 36, 80)
+		PhoneUi.corner(head)
+		local body = PhoneUi.frame("Body", shot)
+		body.AnchorPoint = Vector2.new(0.5, 1)
+		body.Position = UDim2.fromScale(0.5, 1)
+		body.Size = UDim2.fromOffset(8, 3)
+		body.BackgroundTransparency = 0
+		body.BackgroundColor3 = Color3.fromRGB(60, 36, 80)
+		PhoneUi.corner(body, UDim.new(0, 1))
+	end
 end
 
 -- Tells apps that care whether they are on screen (Patong pauses / takes the keyboard).
@@ -294,6 +353,8 @@ local function appIcon(parent: Instance, app: AppInfo, order: number): Frame
 	gradient(icon, app.Top, app.Bottom)
 	if app.Id == "Camera" then
 		drawCamera(icon)
+	elseif app.Id == "Photobooth" then
+		drawPhotoStrip(icon)
 	end
 	icon.Activated:Connect(function()
 		openApp(app.Id)
@@ -399,7 +460,7 @@ local function buildFolder(page: Frame)
 		lockNote.Visible = not status.unlocked
 		if not status.unlocked then
 			lockNote.Text = if status.remaining
-				then `🔒 Ma-unlock in {Unlocks.formatTime(status.remaining)}`
+				then `🔒 Unlocks in {Unlocks.formatTime(status.remaining)}`
 				else `🔒 {status.message}`
 		end
 	end
@@ -513,6 +574,9 @@ local function buildHome(page: Frame)
 	end
 
 	buildFolder(page)
+
+	local photos = appIcon(page, PHOTOBOOTH_APP, 0)
+	photos.Position = UDim2.fromOffset(24 + ICON_SIZE + 22, 150)
 end
 
 function Phone.start()
@@ -716,6 +780,16 @@ function Phone.start()
 			CameraApp.close()
 		end
 		showPage("Notes")
+		if not isOpen then
+			Phone.open()
+		end
+	end)
+	PhotoboothApp.build(newPage("Photobooth", true), goHome, function()
+		if CameraApp.isOpen() then
+			CameraApp.close()
+		end
+		closeFolder(true)
+		showPage("Photobooth")
 		if not isOpen then
 			Phone.open()
 		end

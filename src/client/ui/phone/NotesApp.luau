@@ -23,7 +23,7 @@ local NotesApp = {}
 function NotesApp.build(page: Frame, goHome: () -> (), openSelf: () -> ())
 	PhoneUi.header(page, "Freedom Wall", goHome)
 
-	local intro = PhoneUi.label("Intro", page, "Mag-iwan ng note sa wall 💌", 14)
+	local intro = PhoneUi.label("Intro", page, "Leave a note on the wall", 14)
 	intro.FontFace = PhoneUi.FONT_REGULAR
 	intro.Position = UDim2.fromOffset(18, 44)
 	intro.Size = UDim2.new(1, -36, 0, 18)
@@ -51,7 +51,7 @@ function NotesApp.build(page: Frame, goHome: () -> (), openSelf: () -> ())
 	box.FontFace = Font.fromEnum(Enum.Font.IndieFlower)
 	box.TextSize = 22
 	box.TextColor3 = INK
-	box.PlaceholderText = "Ano'ng nasa isip mo?"
+	box.PlaceholderText = "What's on your mind?"
 	box.PlaceholderColor3 = Color3.fromRGB(160, 140, 110)
 	box.Text = ""
 	box.Parent = paper
@@ -108,7 +108,7 @@ function NotesApp.build(page: Frame, goHome: () -> (), openSelf: () -> ())
 			then Color3.fromRGB(110, 210, 130)
 			else Color3.fromRGB(120, 116, 130)
 		knob.Position = if anonymous then UDim2.new(1, -24, 0.5, 0) else UDim2.new(0, 2, 0.5, 0)
-		rowLabel.Text = if anonymous then "Anonymous" else "Ipakita ang pangalan ko"
+		rowLabel.Text = if anonymous then "Anonymous" else "Show my name"
 	end
 	refreshSwitch()
 	row.Activated:Connect(function()
@@ -120,7 +120,7 @@ function NotesApp.build(page: Frame, goHome: () -> (), openSelf: () -> ())
 	post.Position = UDim2.fromOffset(16, 358)
 	post.Size = UDim2.new(1, -32, 0, 46)
 	post.BackgroundColor3 = PhoneUi.ACCENT
-	post.Text = "I-post sa wall"
+	post.Text = "Post to wall"
 	post.TextSize = 18
 	post.TextColor3 = INK
 	PhoneUi.corner(post, UDim.new(0, 14))
@@ -135,7 +135,7 @@ function NotesApp.build(page: Frame, goHome: () -> (), openSelf: () -> ())
 	local note = PhoneUi.label(
 		"Note",
 		page,
-		`Mawawala ang note mo pag umalis ka ng server. Max {FreedomWall.MaxLength} characters.`,
+		`Your note is removed when you leave the server. Max {FreedomWall.MaxLength} characters.`,
 		12
 	)
 	note.FontFace = PhoneUi.FONT_REGULAR
@@ -149,7 +149,15 @@ function NotesApp.build(page: Frame, goHome: () -> (), openSelf: () -> ())
 	-- Lock screen until the Freedom Wall is unlocked (shared Unlocks), then the scan screen on top
 	-- of everything while it plays.
 	LockedOverlay.attach(page, FreedomWall.Feature)
-	local scanner = QrScanner.build(page)
+	local scanner = QrScanner.build(page, {
+		title = "SCAN ME",
+		subtitle = "Freedom Wall",
+		pattern = FreedomWall.qrPattern(),
+		frameColor = Color3.fromRGB(92, 62, 40),
+		cardColor = Color3.fromRGB(255, 250, 244),
+		titleColor = Color3.fromRGB(45, 32, 26),
+		subtitleColor = Color3.fromRGB(150, 105, 70),
+	})
 
 	local remote = Remotes.freedomWall()
 	local sending = false
@@ -160,22 +168,22 @@ function NotesApp.build(page: Frame, goHome: () -> (), openSelf: () -> ())
 		local text = box.Text
 		if string.match(text, "%S") == nil then
 			status.TextColor3 = ERROR_RED
-			status.Text = "Sulat ka muna ng note."
+			status.Text = "Write a note first."
 			return
 		end
 		sending = true
-		post.Text = "Pino-post..."
+		post.Text = "Posting..."
 		status.Text = ""
 		remote:FireServer("Post", text, anonymous)
 	end)
 
 	remote.OnClientEvent:Connect(function(kind: unknown, message: unknown)
 		if kind == "Open" then
-			intro.Text = "Mag-iwan ng note sa wall 💌"
+			intro.Text = "Leave a note on the wall"
 			intro.TextColor3 = PhoneUi.WHITE
 			openSelf()
 			scanner.play(function()
-				intro.Text = "✓ Na-scan: Freedom Wall · SkyTerrace"
+				intro.Text = "Scanned: Freedom Wall · SkyTerrace"
 				intro.TextColor3 = OK_GREEN
 				if UnlockController.isUnlocked(FreedomWall.Feature) then
 					box:CaptureFocus()
@@ -183,17 +191,17 @@ function NotesApp.build(page: Frame, goHome: () -> (), openSelf: () -> ())
 			end, 0.3) -- let the phone slide in first
 		elseif kind == "Posted" then
 			sending = false
-			post.Text = "I-post sa wall"
+			post.Text = "Post to wall"
 			box.Text = ""
 			status.TextColor3 = OK_GREEN
-			status.Text = "Na-post na! Tingnan mo sa wall ✨"
+			status.Text = "Posted! Check the wall."
 		elseif kind == "Error" then
 			sending = false
-			post.Text = "I-post sa wall"
+			post.Text = "Post to wall"
 			status.TextColor3 = ERROR_RED
 			status.Text = if typeof(message) == "string"
 				then message
-				else "May error, subukan ulit."
+				else "Something went wrong. Try again."
 		end
 	end)
 end

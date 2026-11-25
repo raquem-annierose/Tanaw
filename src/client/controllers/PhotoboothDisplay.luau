@@ -7,6 +7,7 @@
 -- TouchDisplay.Display.Screen.Idle; the other states are added here.
 
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -14,6 +15,7 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Photobooth = require(ReplicatedStorage.Shared.Photobooth)
+local QrCode = require(ReplicatedStorage.Shared.QrCode)
 
 local FONT = Font.fromEnum(Enum.Font.BuilderSansBold)
 local FONT_REGULAR = Font.fromEnum(Enum.Font.BuilderSans)
@@ -33,6 +35,11 @@ type Display = {
 	count: TextLabel,
 	countScale: UIScale,
 	flash: Frame,
+	-- The photo's QR (State "Qr"): white card, the code inside, the hint under it.
+	qrCard: Frame,
+	qrCode: Frame,
+	qrHint: TextLabel,
+	qrShown: number?,
 	leds: { BasePart },
 	ring: { PointLight },
 	countdownId: number,
@@ -97,15 +104,31 @@ local function runCountdown(d: Display)
 	end)
 end
 
+-- The prompt is hidden while the mirror shows the QR or "Thank You!" (it would cover the QR and
+-- take the click), and for the player using the booth.
+local function refreshPrompt(d: Display, state: unknown, ownerName: string)
+	local prompt = d.model:FindFirstChild("PhotoboothPrompt", true)
+	if not prompt or not prompt:IsA("ProximityPrompt") then
+		return
+	end
+	local inSession = state == "Preparing" or state == "Countdown" or state == "Preview"
+	local mine = inSession and ownerName == Players.LocalPlayer.DisplayName
+	prompt.Enabled = not (state == "Qr" or state == "Thanks" or mine)
+end
+
 local function refresh(d: Display)
 	local state = d.model:GetAttribute("State")
 	local owner = d.model:GetAttribute("OwnerName")
 	local ownerName = if typeof(owner) == "string" then owner else ""
+	refreshPrompt(d, state, ownerName)
 
 	d.idle.Visible = state == "Idle" or state == nil
 	d.message.Visible = false
 	d.sub.Visible = false
+	d.sub.Position = UDim2.fromScale(0.5, 0.53)
 	d.count.Visible = false
+	d.qrCard.Visible = false
+	d.qrHint.Visible = false
 	if state ~= "Countdown" then
 		d.countdownId += 1
 	end
@@ -120,11 +143,25 @@ local function refresh(d: Display)
 	end
 
 	if state == "Preparing" then
-		say(Photobooth.Screen.Preparing, `📸 {ownerName}`)
+		say(Photobooth.Screen.Preparing, ownerName)
 	elseif state == "Countdown" then
 		runCountdown(d)
 	elseif state == "Preview" then
 		say(Photobooth.Screen.Preview, `{Photobooth.Screen.InUse:gsub("\n", " ")}`)
+	elseif state == "Qr" then
+		local id = d.model:GetAttribute("PhotoId")
+		if typeof(id) == "number" and d.qrShown ~= id then
+			d.qrShown = id
+			d.qrCode:ClearAllChildren()
+			QrCode.render(d.qrCode, QrCode.pattern(id, Photobooth.QrSize), COLORS.Ink)
+		end
+		d.qrCard.Visible = true
+		d.qrHint.Visible = true
+		if ownerName ~= "" then
+			d.sub.Text = ownerName
+			d.sub.Position = UDim2.fromScale(0.5, 0.17)
+			d.sub.Visible = true
+		end
 	elseif state == "Thanks" then
 		say(Photobooth.Screen.Thanks, if ownerName ~= "" then ownerName else nil)
 	end
@@ -183,6 +220,41 @@ local function setup(instance: Instance)
 	end
 	flash.Parent = screen
 
+	-- QR card: square, a bit above the middle (the screen is tall and narrow).
+	local qrCard = Instance.new("Frame")
+	qrCard.Name = "QrCard"
+	qrCard.AnchorPoint = Vector2.new(0.5, 0.5)
+	qrCard.Position = UDim2.fromScale(0.5, 0.4)
+	qrCard.Size = UDim2.fromScale(0.78, 0.78)
+	qrCard.BackgroundColor3 = Color3.new(1, 1, 1)
+	qrCard.BorderSizePixel = 0
+	qrCard.Visible = false
+	qrCard.ZIndex = 3
+	local qrRatio = Instance.new("UIAspectRatioConstraint")
+	qrRatio.AspectRatio = 1
+	qrRatio.DominantAxis = Enum.DominantAxis.Width
+	qrRatio.Parent = qrCard
+	local qrCorner = Instance.new("UICorner")
+	qrCorner.CornerRadius = UDim.new(0.06, 0)
+	qrCorner.Parent = qrCard
+	local qrStroke = Instance.new("UIStroke")
+	qrStroke.Color = COLORS.Pink
+	qrStroke.Thickness = 4
+	qrStroke.Parent = qrCard
+	qrCard.Parent = screen
+	local qrCode = Instance.new("Frame")
+	qrCode.Name = "Code"
+	qrCode.AnchorPoint = Vector2.new(0.5, 0.5)
+	qrCode.Position = UDim2.fromScale(0.5, 0.5)
+	qrCode.Size = UDim2.fromScale(0.84, 0.84)
+	qrCode.BackgroundTransparency = 1
+	qrCode.Parent = qrCard
+
+	local qrHint = label(screen, "QrHint", FONT)
+	qrHint.Text = Photobooth.Screen.Qr
+	qrHint.Position = UDim2.fromScale(0.5, 0.64)
+	qrHint.Size = UDim2.fromScale(0.84, 0.12)
+
 	local leds: { BasePart } = {}
 	local ring: { PointLight } = {}
 	for _, d in instance:GetDescendants() do
@@ -202,6 +274,10 @@ local function setup(instance: Instance)
 		count = count,
 		countScale = countScale,
 		flash = flash,
+		qrCard = qrCard,
+		qrCode = qrCode,
+		qrHint = qrHint,
+		qrShown = nil,
 		leds = leds,
 		ring = ring,
 		countdownId = 0,
@@ -210,8 +286,17 @@ local function setup(instance: Instance)
 	instance:GetAttributeChangedSignal("State"):Connect(function()
 		refresh(d)
 	end)
+	instance:GetAttributeChangedSignal("PhotoId"):Connect(function()
+		refresh(d)
+	end)
 	instance:GetAttributeChangedSignal("OwnerName"):Connect(function()
 		refresh(d)
+	end)
+	-- The server adds the prompt; it may arrive after this runs.
+	instance.DescendantAdded:Connect(function(added: Instance)
+		if added:IsA("ProximityPrompt") then
+			refresh(d)
+		end
 	end)
 	instance.Destroying:Connect(function()
 		displays[instance] = nil

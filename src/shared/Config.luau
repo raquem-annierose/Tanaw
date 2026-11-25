@@ -89,7 +89,7 @@ local Config = {
 	Cafe = {
 		-- Parts tagged with this in Studio get an "Order" prompt (e.g. the Hiraya cashier spot).
 		Tag = "CafeOrder",
-		Question = "Hi! Gusto mo ng coffee?",
+		Question = "Hi! Would you like a coffee?",
 		ToolName = "Bubble Tea",
 		-- How close a player must be to order, and to accept after being asked.
 		PromptDistance = 13,

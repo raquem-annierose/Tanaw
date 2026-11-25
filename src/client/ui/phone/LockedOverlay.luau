@@ -28,7 +28,7 @@ function LockedOverlay.attach(page: Frame, featureId: string)
 	lock.Position = UDim2.new(0, 0, 0.18, 0)
 	lock.Size = UDim2.new(1, 0, 0, 64)
 
-	local title = PhoneUi.label("Title", overlay, "Naka-lock pa", 22)
+	local title = PhoneUi.label("Title", overlay, "Locked", 22)
 	title.Position = UDim2.new(0, 0, 0.18, 70)
 	title.Size = UDim2.new(1, 0, 0, 28)
 

@@ -158,7 +158,7 @@ local function build(): Ui
 	row.BackgroundTransparency = 1
 	row.Parent = panel
 
-	local status = label("Status", "Naglo-load…", 16, Enum.FontWeight.Medium)
+	local status = label("Status", "Loading…", 16, Enum.FontWeight.Medium)
 	status.Size = UDim2.new(0.75, 0, 1, 0)
 	status.Parent = row
 
@@ -263,13 +263,13 @@ function LoadingScreen.run()
 	end)
 
 	-- 1. The game's starting content.
-	progress(0.05, "Naglo-load…")
+	progress(0.05, "Loading…")
 	waitFor(function()
 		return game:IsLoaded()
 	end, remaining())
 
 	-- 2. The hilltop and the city in the distance.
-	progress(0.25, "Inihahanda ang tanaw…")
+	progress(0.25, "Setting up the view…")
 	local surroundings: Instance? = nil
 	waitFor(function()
 		surroundings = Workspace:FindFirstChild("Surroundings")
@@ -287,7 +287,7 @@ function LoadingScreen.run()
 	progress(0.6)
 
 	-- 3. Textures, meshes and sounds that are still downloading.
-	progress(0.6, "Sinisindihan ang city lights…")
+	progress(0.6, "Turning on the city lights…")
 	local queued = math.max(ContentProvider.RequestQueueSize, 1)
 	waitFor(function()
 		local left = ContentProvider.RequestQueueSize
@@ -297,7 +297,7 @@ function LoadingScreen.run()
 	progress(0.85)
 
 	-- 4. The player's character, plus a moment for the camera to face the view.
-	progress(0.85, "Halos tapos na…")
+	progress(0.85, "Almost there…")
 	waitFor(function()
 		local character = player.Character
 		return character ~= nil and character:FindFirstChild("HumanoidRootPart") ~= nil

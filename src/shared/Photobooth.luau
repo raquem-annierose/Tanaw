@@ -10,8 +10,12 @@
 --   State        - one of the States below
 --   OwnerName    - display name of the player using it ("" when free)
 --   CountdownEnd - Workspace:GetServerTimeNow() when the photo is taken
+--   PhotoId      - number of the photo whose QR the mirror shows (State "Qr"); also the QR's seed
+--
+-- After DONE the mirror shows a QR for QrSeconds. Only the photo's owner can click / tap it; the
+-- phone opens, plays the scan and puts the photo in the Photobooth app (PhotoboothApp).
 
-export type State = "Idle" | "Preparing" | "Countdown" | "Preview" | "Thanks"
+export type State = "Idle" | "Preparing" | "Countdown" | "Preview" | "Qr" | "Thanks"
 
 local Photobooth = {
 	Tag = "Photobooth",
@@ -32,6 +36,13 @@ local Photobooth = {
 	PrepSeconds = 1.5,
 	-- "Thank You!" on the mirror after Done.
 	ThanksSeconds = 2.5,
+	-- How long the mirror shows the photo's QR after Done.
+	QrSeconds = 30,
+	-- Click distance for the QR on the mirror.
+	QrClickDistance = 24,
+	QrSize = 21,
+	-- Photos kept in the phone app this visit (oldest dropped).
+	MaxPhotos = 5,
 	-- Max length of a whole session; the booth frees itself after this.
 	SessionTimeout = 90,
 	-- No answer on the preview for this long counts as Done.
@@ -79,6 +90,13 @@ local Photobooth = {
 		Preview = "Your Photo!",
 		Thanks = "Thank You!",
 		InUse = "Photobooth\nIn Use",
+		Qr = "Scan to get your photo",
+	},
+
+	Messages = {
+		NotYours = "This photo belongs to someone else.",
+		Busy = "Someone is using the photobooth. Please wait.",
+		Timeout = "Your photobooth time is up.",
 	},
 }
 

@@ -21,6 +21,7 @@ local EmoteController = require(script.Parent.EmoteController)
 local Emotes = require(ReplicatedStorage.Shared.Emotes)
 local MovementController = require(script.Parent.MovementController)
 local Phone = require(script.Parent.Parent.ui.phone.Phone)
+local PhotoAlbum = require(script.Parent.Parent.ui.phone.PhotoAlbum)
 local Photobooth = require(ReplicatedStorage.Shared.Photobooth)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
@@ -170,6 +171,29 @@ local function toast(text: string)
 	end)
 end
 
+-- DONE: the photo waits in the album until its QR on the mirror is scanned (PhotoboothApp).
+local function keepPhoto(s: Session)
+	if not s.photo and not s.shot then
+		return
+	end
+	local caption = preview:FindFirstChild("Caption", true)
+	local model = s.photo
+	if model then
+		-- Out of the preview viewport, which cleanup() clears.
+		model.Parent = nil
+	end
+	PhotoAlbum.setPending({
+		shot = s.shot,
+		model = model,
+		view = s.view or Workspace.CurrentCamera.CFrame,
+		fov = s.fov,
+		caption = if caption and caption:IsA("TextLabel") then caption.Text else "Tanaw",
+		id = nil,
+	})
+	s.photo = nil
+	s.shot = nil
+end
+
 local function build()
 	gui = Instance.new("ScreenGui")
 	gui.Name = "Photobooth"
@@ -268,7 +292,7 @@ local function build()
 			EmoteController.play(emote.Id)
 		end)
 	end
-	local leave = pill("Leave", poseBar, "Umalis", false)
+	local leave = pill("Leave", poseBar, "Leave", false)
 	leave.LayoutOrder = 100
 	leave.BackgroundColor3 = COLORS.Ink
 	leave.Activated:Connect(function()
@@ -381,7 +405,7 @@ local function build()
 			s.photo:Destroy()
 			s.photo = nil
 		end
-		hint.Text = "Get Ready! Mag-pose ka 😄"
+		hint.Text = "Get ready! Strike a pose"
 		hint.Visible = true
 		poseBar.Visible = true
 		send("Retake", s.booth)
@@ -391,16 +415,13 @@ local function build()
 		if not s or not preview.Visible then
 			return
 		end
+		keepPhoto(s)
 		send("Done", s.booth)
 		PhotoboothController.cleanup()
+		toast("Click the QR code on the mirror to get your photo")
 	end)
 
 	gui.Parent = player:WaitForChild("PlayerGui")
-end
-
-local function prompt(booth: Model): ProximityPrompt?
-	local found = booth:FindFirstChild("PhotoboothPrompt", true)
-	return if found and found:IsA("ProximityPrompt") then found else nil
 end
 
 function PhotoboothController.cleanup()
@@ -451,10 +472,7 @@ function PhotoboothController.cleanup()
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
 	end
 	Phone.setHidden(false)
-	local p = prompt(s.booth)
-	if p then
-		p.Enabled = true
-	end
+	-- (The booth's prompt is shown / hidden by PhotoboothDisplay from the booth's state.)
 end
 
 -- Booth camera at the CameraSpot (high on the mirror, like a real booth's lens), aimed so the
@@ -603,10 +621,6 @@ local function begin(booth: Model)
 		end
 	end
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
-	local p = prompt(booth)
-	if p then
-		p.Enabled = false
-	end
 	local c = controls()
 	if c then
 		c:Disable()
@@ -614,7 +628,7 @@ local function begin(booth: Model)
 	MovementController.setPaused(true)
 	EmoteController.stop()
 
-	hint.Text = "Get Ready! Mag-pose ka 😄"
+	hint.Text = "Get ready! Strike a pose"
 	hint.Visible = true
 
 	task.spawn(function()
@@ -689,7 +703,7 @@ end
 local function countdown(s: Session, endsAt: number)
 	s.countdownId += 1
 	local id = s.countdownId
-	hint.Text = "Smile! 📸"
+	hint.Text = "Smile!"
 	hint.Visible = true
 	poseBar.Visible = true
 	preview.Visible = false
@@ -806,9 +820,13 @@ local function onMessage(kind: string, a: any, b: any)
 	elseif kind == "Preview" then
 		showPreview(s)
 	elseif kind == "End" then
+		if b == "Done" then
+			-- The preview timed out (counts as Done).
+			keepPhoto(s)
+		end
 		PhotoboothController.cleanup()
 		if b == "Timeout" then
-			toast("Tapos na ang oras sa photobooth.")
+			toast(Photobooth.Messages.Timeout)
 		end
 	end
 end

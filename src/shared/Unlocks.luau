@@ -82,7 +82,7 @@ function Unlocks.check(featureId: string, context: Context): Status
 		return {
 			unlocked = remaining <= 0,
 			remaining = math.max(0, remaining),
-			message = `Kailangan ng {minutes} minutong playtime sa Tanaw para ma-unlock ang {feature.Label}.`,
+			message = `Play {minutes} minutes in Tanaw to unlock {feature.Label}.`,
 		}
 	elseif req.Kind == "Coins" then
 		local owned = context.owned
@@ -90,11 +90,11 @@ function Unlocks.check(featureId: string, context: Context): Status
 		return {
 			unlocked = owned ~= nil and owned[featureId] == true,
 			price = price,
-			message = `Bilhin ang {feature.Label} sa {price} coins.`,
+			message = `Buy {feature.Label} for {price} coins.`,
 		}
 	end
 	warn(`[Unlocks] Unknown requirement kind "{req.Kind}" for {featureId}`)
-	return { unlocked = false, message = "Naka-lock pa." }
+	return { unlocked = false, message = "Locked." }
 end
 
 return Unlocks

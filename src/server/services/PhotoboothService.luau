@@ -6,6 +6,9 @@
 -- Flow: prompt -> Preparing (client walks to the spot, says "Ready") -> Countdown -> client
 -- takes the photo, says "Captured" -> Preview -> Retake (back to Preparing) or Done -> Thanks
 -- -> Idle. Leaving, dying, respawning, leaving the server or the timeout end it early.
+--
+-- After Done the mirror shows the photo's QR (State "Qr") for Photobooth.QrSeconds. Only the
+-- photo's owner can click it ("Scanned" goes to their phone); anyone else gets a message.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -21,7 +24,13 @@ local CAPTURE_EARLY = 0.5
 type Booth = {
 	model: Model,
 	prompt: ProximityPrompt,
+	-- Clicking the QR on the mirror; only parented while State is "Qr". It sits in the mirror
+	-- model (clicks on any of its parts count; the TouchDisplay plate itself isn't clickable).
+	click: ClickDetector,
+	clickTarget: Instance,
 	owner: Player?,
+	-- Whose photo the QR on the mirror is.
+	qrOwner: Player?,
 	-- Bumped on every state change so old delayed tasks know they're stale.
 	token: number,
 	-- Bumped for every new session (for the session timeout).
@@ -34,6 +43,8 @@ local PhotoboothService = {}
 
 local booths: { [Model]: Booth } = {}
 local remote: RemoteEvent
+-- Each photo gets the next number (also the seed of its QR).
+local photoCount = 0
 
 local function setState(booth: Booth, state: Photobooth.State)
 	booth.token += 1
@@ -42,6 +53,10 @@ local function setState(booth: Booth, state: Photobooth.State)
 	booth.prompt.ActionText = if busy
 		then Photobooth.Prompt.BusyText
 		else Photobooth.Prompt.ActionText
+	booth.click.Parent = if state == "Qr" then booth.clickTarget else nil
+	if state ~= "Qr" then
+		booth.qrOwner = nil
+	end
 end
 
 local function disconnectAll(booth: Booth)
@@ -72,9 +87,15 @@ local function finish(booth: Booth, reason: string)
 	if owner.Parent then
 		remote:FireClient(owner, "End", booth.model, reason)
 	end
-	if reason == "Done" then
-		setState(booth, "Thanks")
-		later(booth, Photobooth.ThanksSeconds, function()
+	if reason == "Done" and owner.Parent then
+		-- Show the photo's QR; the owner scans it to get the photo on their phone.
+		photoCount += 1
+		booth.model:SetAttribute("PhotoId", photoCount)
+		booth.model:SetAttribute("OwnerName", owner.DisplayName)
+		setState(booth, "Qr")
+		booth.qrOwner = owner
+		later(booth, Photobooth.QrSeconds, function()
+			booth.model:SetAttribute("OwnerName", "")
 			setState(booth, "Idle")
 		end)
 	else
@@ -101,7 +122,7 @@ local function begin(booth: Booth, player: Player)
 		return
 	end
 	if booth.model:GetAttribute("State") ~= "Idle" then
-		remote:FireClient(player, "Error", "May gumagamit pa ng photobooth. Saglit lang! 📸")
+		remote:FireClient(player, "Error", Photobooth.Messages.Busy)
 		return
 	end
 	for _, other in booths do
@@ -169,6 +190,22 @@ local function onMessage(player: Player, kind: unknown, model: unknown)
 	end
 end
 
+local function onQrClick(booth: Booth, player: Player)
+	if booth.model:GetAttribute("State") ~= "Qr" then
+		return
+	end
+	if booth.qrOwner ~= player then
+		remote:FireClient(player, "Error", Photobooth.Messages.NotYours)
+		return
+	end
+	remote:FireClient(player, "Scanned", booth.model, booth.model:GetAttribute("PhotoId"))
+	setState(booth, "Thanks")
+	later(booth, Photobooth.ThanksSeconds, function()
+		booth.model:SetAttribute("OwnerName", "")
+		setState(booth, "Idle")
+	end)
+end
+
 local function setup(instance: Instance)
 	if not instance:IsA("Model") or booths[instance] then
 		return
@@ -195,10 +232,17 @@ local function setup(instance: Instance)
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = anchor
 
+	local click = Instance.new("ClickDetector")
+	click.Name = "QrClick"
+	click.MaxActivationDistance = Photobooth.QrClickDistance
+
 	local booth: Booth = {
 		model = instance,
 		prompt = prompt,
+		click = click,
+		clickTarget = instance:FindFirstChild("MainMirror") or display,
 		owner = nil,
+		qrOwner = nil,
 		token = 0,
 		session = 0,
 		countdownEnd = 0,
@@ -210,6 +254,9 @@ local function setup(instance: Instance)
 
 	prompt.Triggered:Connect(function(player: Player)
 		begin(booth, player)
+	end)
+	click.MouseClick:Connect(function(player: Player)
+		onQrClick(booth, player)
 	end)
 end
 
@@ -226,6 +273,9 @@ function PhotoboothService.start()
 		for _, booth in booths do
 			if booth.owner == player then
 				finish(booth, "Left")
+			elseif booth.qrOwner == player then
+				booth.model:SetAttribute("OwnerName", "")
+				setState(booth, "Idle")
 			end
 		end
 	end)
