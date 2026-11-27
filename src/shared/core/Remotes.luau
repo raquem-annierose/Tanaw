@@ -43,6 +43,13 @@ local FREEDOM_WALL = "FreedomWall"
 -- Server -> client: ("Start", booth) | ("Countdown", booth, endsAt) | ("Preview", booth)
 --   | ("End", booth, reason: string) | ("Error", message: string)
 local PHOTOBOOTH = "Photobooth"
+-- Wishing Sky Lanterns. Client -> server: ("Release", wish: string, colorIndex: number, anonymous: boolean).
+-- Server -> client: ("Open") | ("Released") | ("Error", message: string) | ("Spawn", payload)
+local SKY_LANTERN = "SkyLantern"
+-- Street food stalls. Client -> server: ("Order", stallName: string, itemId: string).
+-- Server -> client: ("Open", stallName: string) | ("Ordered", itemId: string)
+--   | ("Notice", message: string) | ("Error", message: string)
+local FOOD_STALL = "FoodStall"
 
 local Remotes = {}
 
@@ -143,6 +150,16 @@ end
 -- Both sides: the table games remote. On the client this waits until the server has made it.
 function Remotes.tableGame(): RemoteEvent
 	return event(TABLE_GAME)
+end
+
+-- Both sides: the Wishing Sky Lantern remote. On the client this waits until the server has made it.
+function Remotes.skyLantern(): RemoteEvent
+	return event(SKY_LANTERN)
+end
+
+-- Both sides: the Street Food Stalls remote. On the client this waits until the server has made it.
+function Remotes.foodStall(): RemoteEvent
+	return event(FOOD_STALL)
 end
 
 -- Client: the admin remote, or nil if it doesn't show up in time (e.g. in PROD it never does).
