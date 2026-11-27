@@ -1,8 +1,8 @@
 --!strict
--- Wishing Sky Lanterns: opens the scenic cliffside ledge next to SkyTerrace,
--- builds a cozy wooden viewing deck + safety railing + lantern stand,
--- filters player wishes through Roblox TextService, and broadcasts each released
--- lantern so everyone on the hilltop watches wishes drift over the city lights.
+-- Wishing Sky Lanterns: opens a clean archway through SkyTerrace's side wall onto
+-- the scenic cliffside Wishing Deck, places 2 side-by-side Wishing Lantern tables
+-- so 2 players can make wishes together, filters wishes through Roblox TextService,
+-- and broadcasts each released lantern to all players.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -62,31 +62,110 @@ local function makeBarrier(parent: Instance, name: string, size: Vector3, cf: CF
 	b.CastShadow = false
 end
 
--- Shorten the +Z end of Overlook.Plateau.Barriers.Front so players can walk onto the
--- scenic cliffside Wishing Deck while keeping the rest of the overlook safely walled.
-local function openLedgeBarrier()
-	local overlook = Workspace:FindFirstChild("Overlook")
-	local plateau = overlook and overlook:FindFirstChild("Plateau")
-	local barriers = plateau and plateau:FindFirstChild("Barriers")
-	local front = barriers and barriers:FindFirstChild("Front")
-	if not front or not front:IsA("BasePart") then
+-- Splits a long horizontal beam (StoneWall.Core or Railing.HandRailSide) around the
+-- doorway interval [gapStartWorld, gapEndWorld] so both sides stay cleanly intact.
+local function splitBeamForDoorway(beam: BasePart, gapStartWorld: Vector3, gapEndWorld: Vector3)
+	if beam:GetAttribute("WishingDoorSplit") then
 		return
 	end
-	if front:GetAttribute("WishingLedgeAdjusted") then
-		return
-	end
-	front:SetAttribute("WishingLedgeAdjusted", true)
+	beam:SetAttribute("WishingDoorSplit", true)
 
-	local trimStuds = 9.2
-	local newLen = math.max(10, front.Size.X - trimStuds)
-	-- Front's RightVector points toward -Z, so shifting +RightVector trims the +Z end
-	-- right up to Z ≈ 68.2 (the corner of the Wishing Deck) with no side gap.
-	front.Size = Vector3.new(newLen, front.Size.Y, front.Size.Z)
-	front.CFrame = front.CFrame * CFrame.new(trimStuds * 0.5, 0, 0)
+	local parent = beam.Parent
+	if not parent then
+		return
+	end
+
+	local halfLen = beam.Size.X * 0.5
+	local x1 = beam.CFrame:PointToObjectSpace(gapStartWorld).X
+	local x2 = beam.CFrame:PointToObjectSpace(gapEndWorld).X
+	local gapMin = math.clamp(math.min(x1, x2), -halfLen, halfLen)
+	local gapMax = math.clamp(math.max(x1, x2), -halfLen, halfLen)
+
+	local function spawnSegment(segMin: number, segMax: number)
+		local len = segMax - segMin
+		if len < 0.25 then
+			return
+		end
+		local clone = beam:Clone()
+		clone:SetAttribute("WishingDoorSplit", true)
+		clone.Size = Vector3.new(len, beam.Size.Y, beam.Size.Z)
+		clone.CFrame = beam.CFrame * CFrame.new((segMin + segMax) * 0.5, 0, 0)
+		clone.Parent = parent
+	end
+
+	spawnSegment(-halfLen, gapMin)
+	spawnSegment(gapMax, halfLen)
+	beam:Destroy()
 end
 
--- Cozy soft-glow display paper lantern (warm translucent shell + tiny inner neon core
--- so it looks gentle and photogenic without over-blooming).
+-- Opens a clean pathway through SkyTerrace's low stone wall & railing right between
+-- the two pergola posts so players walk directly from SkyTerrace onto the Wishing Deck.
+local function openSkyTerraceArchway(deckCF: CFrame, doorMinZ: number, doorMaxZ: number)
+	local overlook = Workspace:FindFirstChild("Overlook")
+	local skyTerrace = overlook and overlook:FindFirstChild("SkyTerrace")
+	local patio = skyTerrace and skyTerrace:FindFirstChild("Patio")
+	if not patio then
+		return
+	end
+
+	local gapStartWorld = (deckCF * CFrame.new(-5.8, 1.5, doorMinZ)).Position
+	local gapEndWorld = (deckCF * CFrame.new(-5.8, 1.5, doorMaxZ)).Position
+
+	local stoneWall = patio:FindFirstChild("StoneWall")
+	if stoneWall then
+		for _, child in stoneWall:GetChildren() do
+			if not child:IsA("BasePart") then
+				continue
+			end
+			if child.Name == "Core" and child.Size.X > 20 then
+				splitBeamForDoorway(child, gapStartWorld, gapEndWorld)
+			else
+				local localPos = deckCF:PointToObjectSpace(child.Position)
+				if
+					localPos.X >= -7.4
+					and localPos.X <= -4.0
+					and localPos.Z >= doorMinZ - 0.1
+					and localPos.Z <= doorMaxZ + 0.1
+					and child.Position.Y >= 104.2
+				then
+					child:Destroy()
+				end
+			end
+		end
+	end
+
+	local railing = patio:FindFirstChild("Railing")
+	if railing then
+		for _, child in railing:GetChildren() do
+			if not child:IsA("BasePart") then
+				continue
+			end
+			if child.Name == "HandRailSide" and child.Size.X > 20 then
+				splitBeamForDoorway(child, gapStartWorld, gapEndWorld)
+			elseif child.Name == "Post" then
+				local localPos = deckCF:PointToObjectSpace(child.Position)
+				if
+					localPos.X >= -7.4
+					and localPos.X <= -4.0
+					and localPos.Z >= doorMinZ - 0.1
+					and localPos.Z <= doorMaxZ + 0.1
+				then
+					child:Destroy()
+				end
+			end
+		end
+	end
+
+	-- Split SkyTerrace's invisible side barrier ONLY across the archway opening so
+	-- players can walk straight through while the rest of SkyTerrace stays walled.
+	local barriers = skyTerrace and skyTerrace:FindFirstChild("Barriers")
+	local sideA = barriers and barriers:FindFirstChild("SideA")
+	if sideA and sideA:IsA("BasePart") and sideA.Size.X > 20 then
+		splitBeamForDoorway(sideA, gapStartWorld, gapEndWorld)
+	end
+end
+
+-- Cozy soft-glow display paper lantern.
 local function addDisplayLantern(parent: Instance, cf: CFrame, color: SkyLantern.LanternColor)
 	local body = makePart(
 		parent,
@@ -150,26 +229,35 @@ local function addRailPost(parent: Instance, postCF: CFrame, withLamp: boolean)
 
 		local light = Instance.new("PointLight")
 		light.Color = Color3.fromRGB(255, 198, 128)
-		light.Brightness = 0.9
+		light.Brightness = 0.85
 		light.Range = 14
 		light.Shadows = false
 		light.Parent = lamp
 	end
 end
 
--- Aligned parallel to SkyTerrace & Overlook.Plateau.Barriers (facing SkyLantern.ViewDirection).
+-- Aligned parallel to SkyTerrace (facing SkyLantern.ViewDirection), accessed cleanly
+-- through the SkyTerrace archway with full railings around the 3 outer edges.
 local function buildViewingDeck(model: Model): CFrame
 	local center = Vector3.new(31.2, 105.28, 74.2)
 	local deckCF = CFrame.lookAt(center, center + SkyLantern.ViewDirection)
-	local width = 9.6 -- local X (-X is SkyTerrace wall, +X is right cliff edge)
-	local depth = 20.5 -- local Z (-Z is front city view, +Z is entrance)
+	local width = 9.8 -- local X (-X is SkyTerrace wall, +X is right cliff edge)
+	local depth = 20.5 -- local Z (-Z is front city view, +Z is back edge)
 	local halfW = width * 0.5
 	local halfD = depth * 0.5
+
+	-- Doorway opening along SkyTerrace's side wall (between the two pergola posts).
+	local doorMinZ = -0.6
+	local doorMaxZ = 6.2
+	local doorCenterZ = (doorMinZ + doorMaxZ) * 0.5
+	local doorWidth = doorMaxZ - doorMinZ
+
+	openSkyTerraceArchway(deckCF, doorMinZ, doorMaxZ)
 
 	local woodDeck = Color3.fromRGB(118, 84, 58)
 	local woodTrim = Color3.fromRGB(74, 50, 34)
 
-	-- Rustic wooden viewing deck aligned cleanly with SkyTerrace's wall.
+	-- Rustic wooden viewing deck aligned flush with SkyTerrace's stone wall.
 	makePart(
 		model,
 		"ViewingDeck",
@@ -179,7 +267,21 @@ local function buildViewingDeck(model: Model): CFrame
 		Enum.Material.WoodPlanks
 	)
 
-	-- Foundation skirting underneath so the deck never looks floating on the slope edge.
+	-- Seamless wooden threshold bridge connecting SkyTerrace patio floor to the deck.
+	makePart(
+		model,
+		"EntryBridge",
+		Vector3.new(2.8, 0.36, doorWidth + 0.4),
+		deckCF * CFrame.new(-halfW - 1.1, 0.12, doorCenterZ),
+		woodDeck,
+		Enum.Material.WoodPlanks
+	)
+
+	-- Warm glowing wooden lantern posts flanking the SkyTerrace entryway.
+	addRailPost(model, deckCF * CFrame.new(-halfW - 0.5, 0.16, doorMinZ - 0.1), true)
+	addRailPost(model, deckCF * CFrame.new(-halfW - 0.5, 0.16, doorMaxZ + 0.1), true)
+
+	-- Foundation skirting underneath so the deck never looks floating on the slope.
 	makePart(
 		model,
 		"DeckBase",
@@ -222,8 +324,23 @@ local function buildViewingDeck(model: Model): CFrame
 		)
 	end
 
-	-- Tall invisible safety barriers right behind the front & right railings, overlapping
-	-- Overlook.Plateau.Barriers.Front at the entrance corner so there is zero gap.
+	-- Back railing (local Z = +halfD, cleanly enclosing the old non-stair edge).
+	local backZ = halfD - 0.25
+	for idx, x in { -halfW + 0.25, -halfW * 0.33, halfW * 0.33 } do
+		addRailPost(model, deckCF * CFrame.new(x, 0.16, backZ), idx == 1)
+	end
+	for _, railH in { 1.6, 3.3 } do
+		makePart(
+			model,
+			"BackRail",
+			Vector3.new(width, 0.2, 0.24),
+			deckCF * CFrame.new(0, 0.16 + railH, backZ),
+			woodTrim,
+			Enum.Material.Wood
+		)
+	end
+
+	-- Invisible safety barriers behind all 3 outer railings so players can enjoy the view safely.
 	makeBarrier(
 		model,
 		"LedgeFrontBarrier",
@@ -233,50 +350,43 @@ local function buildViewingDeck(model: Model): CFrame
 	makeBarrier(
 		model,
 		"LedgeRightBarrier",
-		Vector3.new(1, 45, depth + 4),
-		deckCF * CFrame.new(halfW + 0.35, 20, 1.0)
+		Vector3.new(1, 45, depth + 2),
+		deckCF * CFrame.new(halfW + 0.35, 20, 0)
+	)
+	makeBarrier(
+		model,
+		"LedgeBackBarrier",
+		Vector3.new(width + 2, 45, 1),
+		deckCF * CFrame.new(0, 20, halfD + 0.35)
 	)
 
 	return deckCF
 end
 
-local function buildStand(remote: RemoteEvent)
-	local existing = Workspace:FindFirstChild("SkyLanternStand")
-	if existing then
-		existing:Destroy()
-	end
-
-	openLedgeBarrier()
-
-	local model = Instance.new("Model")
-	model.Name = "SkyLanternStand"
-	model.Parent = Workspace
-
-	local deckCF = buildViewingDeck(model)
-
-	-- Place the wooden Wishing Lanterns table neatly along the left side of the aligned
-	-- deck (parallel to SkyTerrace's wall), leaving the front railing open for wishes.
-	local standCF = deckCF * CFrame.new(-3.3, 0.16, -1.5) * CFrame.Angles(0, math.rad(-90), 0)
-
+local function buildLanternTable(
+	model: Model,
+	standCF: CFrame,
+	tableIndex: number,
+	remote: RemoteEvent
+): Part
 	local woodDark = Color3.fromRGB(84, 56, 38)
 	local woodWarm = Color3.fromRGB(132, 92, 60)
 
 	local tableTop = makePart(
 		model,
-		"TableTop",
-		Vector3.new(4.6, 0.28, 2.1),
+		`TableTop_{tableIndex}`,
+		Vector3.new(4.4, 0.26, 2.0),
 		standCF * CFrame.new(0, 2.9, 0),
 		woodWarm,
 		Enum.Material.WoodPlanks
 	)
-	model.PrimaryPart = tableTop
 
-	for _, lx in { -1.95, 1.95 } do
-		for _, lz in { -0.8, 0.8 } do
+	for _, lx in { -1.85, 1.85 } do
+		for _, lz in { -0.75, 0.75 } do
 			makePart(
 				model,
 				"Leg",
-				Vector3.new(0.26, 2.9, 0.26),
+				Vector3.new(0.24, 2.9, 0.24),
 				standCF * CFrame.new(lx, 1.45, lz),
 				woodDark,
 				Enum.Material.Wood
@@ -287,19 +397,18 @@ local function buildStand(remote: RemoteEvent)
 	makePart(
 		model,
 		"Shelf",
-		Vector3.new(4.0, 0.16, 1.7),
+		Vector3.new(3.8, 0.16, 1.6),
 		standCF * CFrame.new(0, 1.0, 0),
 		woodDark,
 		Enum.Material.WoodPlanks
 	)
 
-	-- Two slender wooden posts framing an elevated, easy-to-read wooden sign above the table.
-	for _, px in { -1.75, 1.75 } do
+	for _, px in { -1.65, 1.65 } do
 		makePart(
 			model,
 			"SignPost",
-			Vector3.new(0.18, 3.2, 0.18),
-			standCF * CFrame.new(px, 4.5, -0.75),
+			Vector3.new(0.16, 3.0, 0.16),
+			standCF * CFrame.new(px, 4.4, -0.7),
 			woodDark,
 			Enum.Material.Wood
 		)
@@ -308,8 +417,8 @@ local function buildStand(remote: RemoteEvent)
 	local sign = makePart(
 		model,
 		"Sign",
-		Vector3.new(3.7, 1.15, 0.16),
-		standCF * CFrame.new(0, 5.55, -0.75),
+		Vector3.new(3.5, 1.1, 0.16),
+		standCF * CFrame.new(0, 5.4, -0.7),
 		Color3.fromRGB(62, 42, 30),
 		Enum.Material.Wood
 	)
@@ -324,8 +433,8 @@ local function buildStand(remote: RemoteEvent)
 	gui.Parent = sign
 
 	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(1, -16, 0.56, 0)
-	title.Position = UDim2.fromOffset(8, 4)
+	title.Size = UDim2.new(1, -14, 0.56, 0)
+	title.Position = UDim2.fromOffset(7, 4)
 	title.BackgroundTransparency = 1
 	title.FontFace = Font.fromEnum(Enum.Font.BuilderSansBold)
 	title.Text = "Wishing Lanterns"
@@ -334,8 +443,8 @@ local function buildStand(remote: RemoteEvent)
 	title.Parent = gui
 
 	local sub = Instance.new("TextLabel")
-	sub.Size = UDim2.new(1, -16, 0.34, 0)
-	sub.Position = UDim2.new(0, 8, 0.6, 0)
+	sub.Size = UDim2.new(1, -14, 0.34, 0)
+	sub.Position = UDim2.new(0, 7, 0.6, 0)
 	sub.BackgroundTransparency = 1
 	sub.FontFace = Font.fromEnum(Enum.Font.BuilderSans)
 	sub.Text = "Write a wish & let it fly"
@@ -347,12 +456,11 @@ local function buildStand(remote: RemoteEvent)
 	backGui.Face = Enum.NormalId.Back
 	backGui.Parent = sign
 
-	-- Soft warm overhead glow under the sign.
 	local lightAnchor = makePart(
 		model,
 		"SignLight",
-		Vector3.new(0.3, 0.3, 0.3),
-		standCF * CFrame.new(0, 4.7, 0),
+		Vector3.new(0.2, 0.2, 0.2),
+		standCF * CFrame.new(0, 4.6, 0),
 		Color3.fromRGB(255, 208, 136),
 		Enum.Material.Neon
 	)
@@ -360,28 +468,59 @@ local function buildStand(remote: RemoteEvent)
 	lightAnchor.CanCollide = false
 	local warmLight = Instance.new("PointLight")
 	warmLight.Color = Color3.fromRGB(255, 198, 126)
-	warmLight.Brightness = 1.4
-	warmLight.Range = 18
+	warmLight.Brightness = 1.1
+	warmLight.Range = 16
 	warmLight.Shadows = false
 	warmLight.Parent = lightAnchor
 
-	-- Three soft-glow display paper lanterns neatly spaced on the tabletop.
-	addDisplayLantern(model, standCF * CFrame.new(-1.25, 3.6, 0.15), SkyLantern.Colors[1])
-	addDisplayLantern(model, standCF * CFrame.new(0, 3.6, 0.15), SkyLantern.Colors[2])
-	addDisplayLantern(model, standCF * CFrame.new(1.25, 3.6, 0.15), SkyLantern.Colors[4])
+	addDisplayLantern(model, standCF * CFrame.new(-1.15, 3.55, 0.15), SkyLantern.Colors[1])
+	addDisplayLantern(model, standCF * CFrame.new(0, 3.55, 0.15), SkyLantern.Colors[2])
+	addDisplayLantern(model, standCF * CFrame.new(1.15, 3.55, 0.15), SkyLantern.Colors[3])
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Make a Wish"
-	prompt.ObjectText = "Sky Lantern"
+	prompt.ObjectText = `Sky Lantern #{tableIndex}`
 	prompt.KeyboardKeyCode = Enum.KeyCode.E
 	prompt.HoldDuration = 0
-	prompt.MaxActivationDistance = 12
+	prompt.MaxActivationDistance = 10
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = tableTop
 
 	prompt.Triggered:Connect(function(player: Player)
 		remote:FireClient(player, "Open")
 	end)
+
+	return tableTop
+end
+
+local function buildStand(remote: RemoteEvent)
+	local existing = Workspace:FindFirstChild("SkyLanternStand")
+	if existing then
+		existing:Destroy()
+	end
+
+	local model = Instance.new("Model")
+	model.Name = "SkyLanternStand"
+	model.Parent = Workspace
+
+	local deckCF = buildViewingDeck(model)
+
+	-- Place 2 Wishing Lantern tables neatly along the right railing side of the deck
+	-- facing the SkyTerrace entryway so 2 friends can make wishes at the same time,
+	-- while keeping the pathway and the entire front city-lights railing wide open.
+	local table1 = buildLanternTable(
+		model,
+		deckCF * CFrame.new(3.35, 0.16, -5.2) * CFrame.Angles(0, math.rad(90), 0),
+		1,
+		remote
+	)
+	buildLanternTable(
+		model,
+		deckCF * CFrame.new(3.35, 0.16, 2.2) * CFrame.Angles(0, math.rad(90), 0),
+		2,
+		remote
+	)
+	model.PrimaryPart = table1
 end
 
 local function computeLaunchOrigin(player: Player): Vector3

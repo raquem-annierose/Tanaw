@@ -214,4 +214,3 @@ local FoodStalls = {
 }
 
 return FoodStalls
-

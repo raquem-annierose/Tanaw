@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.core.Config)
+local FoodModels = require(ReplicatedStorage.Shared.hangout.FoodModels)
 local FoodStalls = require(ReplicatedStorage.Shared.hangout.FoodStalls)
 local Remotes = require(ReplicatedStorage.Shared.core.Remotes)
 
@@ -21,43 +22,6 @@ local FoodStallService = {}
 
 local stallCounters: { [string]: BasePart } = {}
 
-local function part(name: string, size: Vector3, color: Color3, cf: CFrame): Part
-	local p = Instance.new("Part")
-	p.Name = name
-	p.Size = size
-	p.Color = color
-	p.Material = Enum.Material.SmoothPlastic
-	p.CFrame = cf
-	p.CanCollide = false
-	p.CanTouch = false
-	p.CanQuery = false
-	p.Massless = true
-	p.TopSurface = Enum.SurfaceType.Smooth
-	p.BottomSurface = Enum.SurfaceType.Smooth
-	return p
-end
-
-local function cylinder(name: string, height: number, width: number, color: Color3, y: number): Part
-	local p = part(
-		name,
-		Vector3.new(height, width, width),
-		color,
-		CFrame.new(0, y, 0) * CFrame.Angles(0, 0, math.rad(90))
-	)
-	p.Shape = Enum.PartType.Cylinder
-	return p
-end
-
-local function weldPieces(tool: Tool, handle: Part, pieces: { Part })
-	for _, piece in pieces do
-		piece.Parent = tool
-		local w = Instance.new("WeldConstraint")
-		w.Part0 = handle
-		w.Part1 = piece
-		w.Parent = piece
-	end
-end
-
 local function buildFoodTool(item: MenuItem): Tool
 	local tool = Instance.new("Tool")
 	tool.Name = item.Name
@@ -66,117 +30,15 @@ local function buildFoodTool(item: MenuItem): Tool
 	tool.RequiresHandle = true
 	tool:SetAttribute("FoodItemId", item.Id)
 
-	local handle = part("Handle", Vector3.new(0.4, 0.4, 0.4), Color3.new(1, 1, 1), CFrame.new())
-	handle.Transparency = 1
+	local handle, pieces = FoodModels.buildParts(item)
 	handle.Parent = tool
-
-	local pieces: { Part } = {}
-
-	if item.Kind == "Shake" then
-		local cup = cylinder("Cup", 1.1, 0.72, item.PrimaryColor, 0)
-		cup.Transparency = 0.08
-		local top =
-			part("Cream", Vector3.new(0.66, 0.34, 0.66), item.AccentColor, CFrame.new(0, 0.62, 0))
-		top.Shape = Enum.PartType.Ball
-		local lid = cylinder("Lid", 0.08, 0.76, Color3.fromRGB(248, 248, 248), 0.56)
-		lid.Transparency = 0.35
-		local straw = cylinder("Straw", 0.95, 0.1, Color3.fromRGB(255, 248, 236), 0.95)
-		straw.CFrame = CFrame.new(0.1, 0.95, 0) * CFrame.Angles(0, 0, math.rad(82))
-		pieces = { cup, top, lid, straw }
-	elseif item.Kind == "MilkTea" then
-		local cup = cylinder("Cup", 1.1, 0.7, item.PrimaryColor, 0)
-		cup.Transparency = 0.1
-		local pearls = cylinder("Pearls", 0.28, 0.66, Color3.fromRGB(42, 26, 20), -0.4)
-		local foam = cylinder("Foam", 0.18, 0.68, item.AccentColor, 0.46)
-		local lid = cylinder("Lid", 0.08, 0.74, Color3.fromRGB(246, 246, 246), 0.58)
-		lid.Transparency = 0.3
-		local straw = cylinder("Straw", 0.95, 0.12, Color3.fromRGB(48, 36, 32), 0.95)
-		straw.CFrame = CFrame.new(0.12, 0.95, 0) * CFrame.Angles(0, 0, math.rad(80))
-		pieces = { cup, pearls, foam, lid, straw }
-	elseif item.Kind == "Pizza" then
-		local plate = cylinder("Plate", 0.06, 1.35, Color3.fromRGB(246, 244, 238), -0.05)
-		local crust = part(
-			"Crust",
-			Vector3.new(1.05, 0.14, 0.22),
-			Color3.fromRGB(204, 146, 78),
-			CFrame.new(0, 0.05, 0.45)
-		)
-		local cheese = part(
-			"Cheese",
-			Vector3.new(0.95, 0.1, 0.9),
-			item.PrimaryColor,
-			CFrame.new(0, 0.04, -0.05)
-		)
-		local t1 = cylinder("Top1", 0.04, 0.24, item.AccentColor, 0.1)
-		t1.CFrame = CFrame.new(-0.2, 0.1, 0.05) * CFrame.Angles(0, 0, math.rad(90))
-		local t2 = cylinder("Top2", 0.04, 0.24, item.AccentColor, 0.1)
-		t2.CFrame = CFrame.new(0.2, 0.1, -0.15) * CFrame.Angles(0, 0, math.rad(90))
-		local t3 = cylinder("Top3", 0.04, 0.22, item.AccentColor, 0.1)
-		t3.CFrame = CFrame.new(0.02, 0.1, 0.22) * CFrame.Angles(0, 0, math.rad(90))
-		pieces = { plate, crust, cheese, t1, t2, t3 }
-	elseif item.Kind == "Skewer" then
-		local stick = cylinder("Stick", 1.9, 0.07, Color3.fromRGB(224, 194, 142), 0.45)
-		local m1 =
-			part("Meat1", Vector3.new(0.36, 0.34, 0.28), item.PrimaryColor, CFrame.new(0, 0.45, 0))
-		local m2 =
-			part("Meat2", Vector3.new(0.38, 0.34, 0.3), item.AccentColor, CFrame.new(0, 0.82, 0))
-		local m3 =
-			part("Meat3", Vector3.new(0.34, 0.32, 0.26), item.PrimaryColor, CFrame.new(0, 1.18, 0))
-		pieces = { stick, m1, m2, m3 }
-	elseif item.Kind == "Fries" then
-		local box =
-			part("Carton", Vector3.new(0.74, 0.82, 0.44), item.AccentColor, CFrame.new(0, 0.05, 0))
-		pieces = { box }
-		for i = -2, 2 do
-			local fry = part(
-				`Fry{i}`,
-				Vector3.new(0.11, 0.62 + (math.abs(i) % 2) * 0.14, 0.11),
-				item.PrimaryColor,
-				CFrame.new(i * 0.13, 0.56, (i % 2) * 0.06) * CFrame.Angles(0, 0, math.rad(i * -4))
-			)
-			table.insert(pieces, fry)
-		end
-	elseif item.Kind == "Shawarma" then
-		local foil = cylinder("Foil", 0.65, 0.54, Color3.fromRGB(228, 232, 236), -0.18)
-		local pita = cylinder("Pita", 0.72, 0.5, item.PrimaryColor, 0.36)
-		local filling =
-			part("Filling", Vector3.new(0.42, 0.22, 0.42), item.AccentColor, CFrame.new(0, 0.72, 0))
-		filling.Shape = Enum.PartType.Ball
-		local lettuce = part(
-			"Lettuce",
-			Vector3.new(0.36, 0.14, 0.36),
-			Color3.fromRGB(118, 184, 86),
-			CFrame.new(0.08, 0.78, 0.04)
-		)
-		pieces = { foil, pita, filling, lettuce }
-	else -- Siomai
-		local cup = cylinder("Cup", 0.62, 0.74, Color3.fromRGB(244, 240, 232), -0.05)
-		local s1 = part(
-			"Siomai1",
-			Vector3.new(0.32, 0.28, 0.32),
-			item.PrimaryColor,
-			CFrame.new(-0.15, 0.34, -0.08)
-		)
-		local s2 = part(
-			"Siomai2",
-			Vector3.new(0.32, 0.28, 0.32),
-			item.PrimaryColor,
-			CFrame.new(0.15, 0.34, -0.08)
-		)
-		local s3 = part(
-			"Siomai3",
-			Vector3.new(0.32, 0.28, 0.32),
-			item.PrimaryColor,
-			CFrame.new(0, 0.34, 0.16)
-		)
-		local chili =
-			part("Chili", Vector3.new(0.2, 0.08, 0.2), item.AccentColor, CFrame.new(0, 0.49, 0.12))
-		local pick = cylinder("Toothpick", 0.75, 0.05, Color3.fromRGB(232, 206, 158), 0.62)
-		pick.CFrame = CFrame.new(0.12, 0.62, 0) * CFrame.Angles(0, 0, math.rad(72))
-		pieces = { cup, s1, s2, s3, chili, pick }
+	for _, piece in pieces do
+		piece.Parent = tool
+		local w = Instance.new("WeldConstraint")
+		w.Part0 = handle
+		w.Part1 = piece
+		w.Parent = piece
 	end
-
-	weldPieces(tool, handle, pieces)
 	return tool
 end
 
@@ -294,11 +156,235 @@ local function decorateChalkboard(menuPart: BasePart, stall: StallDef)
 	end
 end
 
+local function makeAnchored(
+	parent: Instance,
+	name: string,
+	size: Vector3,
+	cf: CFrame,
+	color: Color3,
+	material: Enum.Material
+): Part
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Size = size
+	p.CFrame = cf
+	p.Color = color
+	p.Material = material
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.CastShadow = false
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	p.Parent = parent
+	return p
+end
+
+-- Restyle the existing booth parts with warm artisan café materials and add
+-- slatted wood paneling, a striped fabric awning, under-counter glow, framed
+-- menu trim, and flanking potted greenery.
+local function decorateBooth(stallModel: Instance, booth: Instance, stall: StallDef)
+	local woodDark = Color3.fromRGB(72, 48, 34)
+	local woodWarm = Color3.fromRGB(112, 78, 54)
+	local woodCounter = Color3.fromRGB(134, 94, 62)
+	local creamWall = Color3.fromRGB(204, 188, 168)
+	local creamBase = Color3.fromRGB(212, 198, 180)
+
+	for _, child in booth:GetChildren() do
+		if not child:IsA("BasePart") then
+			continue
+		end
+		if child.Name == "CounterTop" then
+			child.Material = Enum.Material.WoodPlanks
+			child.Color = woodCounter
+		elseif child.Name == "Counter" then
+			child.Material = Enum.Material.SmoothPlastic
+			child.Color = creamBase
+		elseif child.Name == "CounterStripe" then
+			child.Material = Enum.Material.SmoothPlastic
+			child.Color = stall.Accent
+		elseif child.Name == "BackLow" or child.Name == "SideLow" then
+			child.Material = Enum.Material.WoodPlanks
+			child.Color = woodWarm
+		elseif child.Name == "BackHigh" or child.Name == "SideHigh" then
+			child.Material = Enum.Material.SmoothPlastic
+			child.Color = creamWall
+		elseif child.Name == "Post" then
+			child.Material = Enum.Material.Wood
+			child.Color = woodDark
+		elseif child.Name == "Roof" then
+			child.Material = Enum.Material.Wood
+			child.Color = Color3.fromRGB(64, 44, 32)
+		elseif child.Name == "Floor" then
+			child.Material = Enum.Material.WoodPlanks
+			child.Color = Color3.fromRGB(94, 68, 50)
+		end
+	end
+
+	local oldDecor = stallModel:FindFirstChild("StallDecor")
+	if oldDecor then
+		oldDecor:Destroy()
+	end
+	local decor = Instance.new("Folder")
+	decor.Name = "StallDecor"
+	decor.Parent = stallModel
+
+	local counterTop = booth:FindFirstChild("CounterTop")
+	if counterTop and counterTop:IsA("BasePart") then
+		local ctCF = counterTop.CFrame
+
+		-- Vertical wooden café slats across the front of the counter.
+		local slatCount = 19
+		for i = 0, slatCount - 1 do
+			local x = -7.0 + (i / (slatCount - 1)) * 14.0
+			makeAnchored(
+				decor,
+				"CounterSlat",
+				Vector3.new(0.16, 3.25, 0.1),
+				ctCF * CFrame.new(x, -1.75, -0.84),
+				woodWarm,
+				Enum.Material.Wood
+			)
+		end
+
+		-- Subtle warm accent trim tucked beneath the counter lip.
+		local led = makeAnchored(
+			decor,
+			"UnderCounterGlow",
+			Vector3.new(14.6, 0.08, 0.08),
+			ctCF * CFrame.new(0, -0.14, -0.94),
+			Color3.fromRGB(232, 190, 138),
+			Enum.Material.SmoothPlastic
+		)
+		led.Transparency = 0.2
+
+		-- Striped boutique fabric awning extending forward above the counter.
+		local stripes = 10
+		local totalW = 16.4
+		local stripeW = totalW / stripes
+		local awningCream = Color3.fromRGB(248, 242, 232)
+		local awningCF = ctCF * CFrame.new(0, 6.25, -2.55) * CFrame.Angles(math.rad(-18), 0, 0)
+		for i = 0, stripes - 1 do
+			local sx = -totalW * 0.5 + stripeW * (i + 0.5)
+			local isAccent = (i % 2 == 0)
+			makeAnchored(
+				decor,
+				"AwningStripe",
+				Vector3.new(stripeW + 0.02, 0.16, 2.5),
+				awningCF * CFrame.new(sx, 0, 0),
+				if isAccent then stall.Accent else awningCream,
+				Enum.Material.Fabric
+			)
+		end
+
+		-- Crisp front valence lip along the bottom edge of the awning.
+		makeAnchored(
+			decor,
+			"AwningTrim",
+			Vector3.new(totalW + 0.1, 0.24, 0.14),
+			awningCF * CFrame.new(0, -0.14, -1.26),
+			woodDark,
+			Enum.Material.Wood
+		)
+
+		-- Cozy flanking wooden planter boxes with lush greenery on both sides of the stall.
+		for _, sideX in { -7.95, 7.95 } do
+			local potCF = ctCF * CFrame.new(sideX, -2.55, -1.35)
+			local pot = makeAnchored(
+				decor,
+				"PlanterPot",
+				Vector3.new(1.35, 1.3, 1.35),
+				potCF,
+				woodDark,
+				Enum.Material.WoodPlanks
+			)
+			pot.CanCollide = true
+			makeAnchored(
+				decor,
+				"PlanterRim",
+				Vector3.new(1.5, 0.18, 1.5),
+				potCF * CFrame.new(0, 0.65, 0),
+				woodWarm,
+				Enum.Material.Wood
+			)
+			local bush1 = makeAnchored(
+				decor,
+				"Foliage1",
+				Vector3.new(1.35, 1.2, 1.35),
+				potCF * CFrame.new(0, 1.15, 0),
+				Color3.fromRGB(58, 112, 64),
+				Enum.Material.Grass
+			)
+			bush1.Shape = Enum.PartType.Ball
+			local bush2 = makeAnchored(
+				decor,
+				"Foliage2",
+				Vector3.new(0.95, 0.95, 0.95),
+				potCF * CFrame.new(0.22, 1.65, -0.15),
+				Color3.fromRGB(76, 134, 74),
+				Enum.Material.Grass
+			)
+			bush2.Shape = Enum.PartType.Ball
+			local bloom = makeAnchored(
+				decor,
+				"PlanterAccent",
+				Vector3.new(0.28, 0.28, 0.28),
+				potCF * CFrame.new(-0.25, 1.75, -0.35),
+				stall.Accent,
+				Enum.Material.SmoothPlastic
+			)
+			bloom.Shape = Enum.PartType.Ball
+		end
+	end
+
+	-- Wooden frame molding around the chalkboard menu.
+	local menuPart = booth:FindFirstChild("Menu")
+	if menuPart and menuPart:IsA("BasePart") then
+		local mCF = menuPart.CFrame
+		local mw, mh = menuPart.Size.X, menuPart.Size.Y
+		makeAnchored(
+			decor,
+			"MenuFrameTop",
+			Vector3.new(mw + 0.36, 0.18, 0.34),
+			mCF * CFrame.new(0, mh * 0.5 + 0.08, 0),
+			woodWarm,
+			Enum.Material.Wood
+		)
+		makeAnchored(
+			decor,
+			"MenuFrameBot",
+			Vector3.new(mw + 0.36, 0.18, 0.34),
+			mCF * CFrame.new(0, -mh * 0.5 - 0.08, 0),
+			woodWarm,
+			Enum.Material.Wood
+		)
+		makeAnchored(
+			decor,
+			"MenuFrameL",
+			Vector3.new(0.18, mh + 0.34, 0.34),
+			mCF * CFrame.new(-mw * 0.5 - 0.09, 0, 0),
+			woodWarm,
+			Enum.Material.Wood
+		)
+		makeAnchored(
+			decor,
+			"MenuFrameR",
+			Vector3.new(0.18, mh + 0.34, 0.34),
+			mCF * CFrame.new(mw * 0.5 + 0.09, 0, 0),
+			woodWarm,
+			Enum.Material.Wood
+		)
+	end
+end
+
 local function setupStall(stallModel: Instance, stall: StallDef, remote: RemoteEvent)
 	local booth = stallModel:FindFirstChild("Booth")
 	if not booth then
 		return
 	end
+
+	decorateBooth(stallModel, booth, stall)
 
 	local menuPart = booth:FindFirstChild("Menu")
 	if menuPart and menuPart:IsA("BasePart") then
